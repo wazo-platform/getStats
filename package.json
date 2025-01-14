@@ -9,7 +9,9 @@
   },
   "description": "A tiny JavaScript library using WebRTC getStats API to return peer connection stats i.e. bandwidth usage, packets lost, local/remote ip addresses and ports, type of connection etc.",
   "scripts": {
-    "start": "node server.js"
+    "demo": "node server.js",
+    "build": "grunt",
+    "start": "grunt watch"
   },
   "main": "./getStats.js",
   "types": "./getStats.d.ts",
