@@ -1,12 +1,23 @@
 getStatsParser.checkAudioTracks = function(result) {
     if (result.mediaType !== 'audio') return;
 
-    var sendrecvType = getStatsResult.internal.getSendrecvType(result);
-
+    const sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;
 
-    if (getStatsResult.audio[sendrecvType].codecs.indexOf(result.googCodecName || 'opus') === -1) {
-        getStatsResult.audio[sendrecvType].codecs.push(result.googCodecName || 'opus');
+    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
+    // @todo double check this logic when having multiple candidates
+    const rtpResult = getStatsResult.results.find(r => r.type === rtpResultKey  && r.mediaType === 'audio');
+    if (!rtpResult) return;
+
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
+
+    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
+    if (!mediaPlayoutResult) return;
+
+    const currentCodec = getCodecName(codecResult.mimeType) || 'opus';
+    if (getStatsResult.audio[sendrecvType].codecs.indexOf(currentCodec) === -1) {
+        getStatsResult.audio[sendrecvType].codecs.push(currentCodec);
     }
 
     if (!!result.bytesSent) {
@@ -38,19 +49,21 @@ getStatsParser.checkAudioTracks = function(result) {
         getStatsResult.audio.bytesReceived = kilobytes.toFixed(1);
     }
 
-    if (result.googTrackId && getStatsResult.audio[sendrecvType].tracks.indexOf(result.googTrackId) === -1) {
-        getStatsResult.audio[sendrecvType].tracks.push(result.googTrackId);
+    if (result.trackIdentifier && getStatsResult.audio[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
+        getStatsResult.audio[sendrecvType].tracks.push(result.trackIdentifier);
     }
 
     // calculate latency
-    if (!!result.googCurrentDelayMs) {
+    // @todo latency still not working as expected... do not expect 0 or below ...
+    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
+    if (!!currentDelayMs) {
         var kilobytes = 0;
         if (!getStatsResult.internal.audio.prevGoogCurrentDelayMs) {
-            getStatsResult.internal.audio.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+            getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
         }
 
-        var bytes = result.googCurrentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
-        getStatsResult.internal.audio.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+        var bytes = currentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
+        getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
 
         getStatsResult.audio.latency = bytes.toFixed(1);
 
@@ -60,14 +73,14 @@ getStatsParser.checkAudioTracks = function(result) {
     }
 
     // calculate packetsLost
-    if (!!result.packetsLost) {
+    if (!!rtpResult.packetsLost) {
         var kilobytes = 0;
         if (!getStatsResult.internal.audio.prevPacketsLost) {
-            getStatsResult.internal.audio.prevPacketsLost = result.packetsLost;
+            getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
         }
 
-        var bytes = result.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
-        getStatsResult.internal.audio.prevPacketsLost = result.packetsLost;
+        var bytes = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
+        getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
 
         getStatsResult.audio.packetsLost = bytes.toFixed(1);
 

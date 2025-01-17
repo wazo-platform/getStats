@@ -2,11 +2,22 @@ getStatsParser.checkVideoTracks = function(result) {
     if (result.mediaType !== 'video') return;
 
     var sendrecvType = getStatsResult.internal.getSendrecvType(result);
-
     if (!sendrecvType) return;
 
-    if (getStatsResult.video[sendrecvType].codecs.indexOf(result.googCodecName || 'VP8') === -1) {
-        getStatsResult.video[sendrecvType].codecs.push(result.googCodecName || 'VP8');
+    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
+    // @todo double check this logic when having multiple candidates
+    const rtpResult = getStatsResult.results.find(r => r.type === rtpResultKey && r.mediaType === 'video');
+    if (!rtpResult) return;
+
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
+
+    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
+    if (!mediaPlayoutResult) return;
+
+    const currentCodec = getCodecName(codecResult.mimeType) || 'VP8';
+    if (getStatsResult.video[sendrecvType].codecs.indexOf(currentCodec) === -1) {
+        getStatsResult.video[sendrecvType].codecs.push(currentCodec);
     }
 
     if (!!result.bytesSent) {
@@ -38,20 +49,16 @@ getStatsParser.checkVideoTracks = function(result) {
         getStatsResult.video.bytesReceived = kilobytes.toFixed(1);
     }
 
-    if (result.googFrameHeightReceived && result.googFrameWidthReceived) {
-        getStatsResult.resolutions[sendrecvType].width = result.googFrameWidthReceived;
-        getStatsResult.resolutions[sendrecvType].height = result.googFrameHeightReceived;
+    if (rtpResult.frameHeight && result.frameWidth) {
+        getStatsResult.resolutions[sendrecvType].width = result.frameHeight;
+        getStatsResult.resolutions[sendrecvType].height = result.frameHeight;
     }
 
-    if (result.googFrameHeightSent && result.googFrameWidthSent) {
-        getStatsResult.resolutions[sendrecvType].width = result.googFrameWidthSent;
-        getStatsResult.resolutions[sendrecvType].height = result.googFrameHeightSent;
+    if (result.trackIdentifier && getStatsResult.video[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
+        getStatsResult.video[sendrecvType].tracks.push(result.trackIdentifier);
     }
 
-    if (result.googTrackId && getStatsResult.video[sendrecvType].tracks.indexOf(result.googTrackId) === -1) {
-        getStatsResult.video[sendrecvType].tracks.push(result.googTrackId);
-    }
-
+    // @todo do not to existing in the migration guide and note inside the payload of result
     if (result.framerateMean) {
         getStatsResult.bandwidth.framerateMean = result.framerateMean;
         var kilobytes = 0;
@@ -66,6 +73,7 @@ getStatsParser.checkVideoTracks = function(result) {
         getStatsResult.video[sendrecvType].framerateMean = bytes.toFixed(1);
     }
 
+    // @todo do not to existing in the migration guide and note inside the payload of result
     if (result.bitrateMean) {
         getStatsResult.bandwidth.bitrateMean = result.bitrateMean;
         var kilobytes = 0;
@@ -81,14 +89,16 @@ getStatsParser.checkVideoTracks = function(result) {
     }
 
     // calculate latency
-    if (!!result.googCurrentDelayMs) {
+    // @todo latency still not working as expected... do not expect 0 or below ...
+    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
+    if (!!currentDelayMs) {
         var kilobytes = 0;
         if (!getStatsResult.internal.video.prevGoogCurrentDelayMs) {
-            getStatsResult.internal.video.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+            getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
         }
 
-        var bytes = result.googCurrentDelayMs - getStatsResult.internal.video.prevGoogCurrentDelayMs;
-        getStatsResult.internal.video.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+        var bytes = currentDelayMs - getStatsResult.internal.video.prevGoogCurrentDelayMs;
+        getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
 
         getStatsResult.video.latency = bytes.toFixed(1);
 
