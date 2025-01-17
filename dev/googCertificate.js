@@ -1,14 +1,14 @@
 getStatsParser.googCertificate = function(result) {
-    if (result.type == 'googCertificate') {
-        getStatsResult.encryption = result.googFingerprintAlgorithm;
-    }
-
-    // Safari-11 or higher
     if (result.type == 'certificate') {
-        // todo: is it possible to have different encryption methods for senders and receivers?
-        // if yes, then we need to set:
-        //    getStatsResult.encryption.local = value;
-        //    getStatsResult.encryption.remote = value;
-        getStatsResult.encryption = result.fingerprintAlgorithm;
+        const transportResult = getStatsResult.results.find(r => r.type === 'transport');
+
+        if (transportResult.localCertificateId === result.id) {
+            getStatsResult.encryption = result.fingerprintAlgorithm; // local candidate as default value
+            getStatsResult.encryptionLocal = result.fingerprintAlgorithm;
+        }
+
+        if (transportResult.remoteCertificateId === result.id) {
+            getStatsResult.encryptionRemote = result.fingerprintAlgorithm;
+        }
     }
 };
