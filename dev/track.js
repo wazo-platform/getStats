@@ -1,3 +1,5 @@
+// Note: This files only for Safari
+// @todo remove safari code for our usecase?
 getStatsParser.track = function(result) {
     if (!isSafari) return;
     if (result.type !== 'track') return;

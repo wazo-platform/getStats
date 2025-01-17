@@ -1,3 +1,5 @@
+// Note: This files only for Safari
+// @todo remove safari code for our usecase?
 getStatsParser.outboundrtp = function(result) {
     if (!isSafari) return;
     if (result.type !== 'outbound-rtp') return;
