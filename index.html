@@ -1,9 +1,8 @@
-<script>window.demoVersion = '2019.02.20';</script>
-
 <!--
 > Muaz Khan     - www.MuazKhan.com
+> Wazo Platfor  - wazo-platform.org
 > MIT License   - www.WebRTC-Experiment.com/licence
-> Documentation - github.com/muaz-khan/getStats
+> Documentation - github.com/wazo-platform/getStats
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -156,25 +155,9 @@
             <h1>
                 getStats.js Demo | WebRTC getStats API
             </h1>
-            <p>
-                <a href="https://www.webrtc-experiment.com/">HOME</a>
-                <span> &copy; </span>
-                <a href="http://www.MuazKhan.com/" target="_blank">Muaz Khan</a> .
-                <a href="http://twitter.com/WebRTCWeb" target="_blank" title="Twitter profile for WebRTC Experiments">@WebRTCWeb</a> .
-                <a href="https://github.com/muaz-khan?tab=repositories" target="_blank" title="Github Profile">Github</a> .
-                <a href="https://github.com/muaz-khan/getStats/issues?state=open" target="_blank">Latest issues</a> .
-                <a href="https://github.com/muaz-khan/getStats/commits/master" target="_blank">What's New?</a>
-            </p>
         </header>
 
-        <div class="github-stargazers"></div>
-
-        <section style="margin: 20px; text-align: center; color: red;">
-            <small id="demoVersion"></small>
-            <script>var date=new Date(window.demoVersion),month=date.toLocaleString("en-us",{month:"long"}),day=date.getUTCDate();day.toString().length<=9&&(day=day.toString().length == 1 ? "0"+day : day);var year=date.getUTCFullYear(); document.getElementById("demoVersion").innerHTML="Last Updated On: <time>"+month+" "+day+" "+year+"</time>";</script>
-        </section>
-
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin: 20px 0;">
             <button id="btn-stop" disabled>Stop Camera & getStats</button>
             <select id="select-iceTransportPolicy">
                 <option value="all">STUN+TURN</option>
@@ -498,11 +481,7 @@
             var CAMERA_STREAM;
             getUserMedia(function (video_stream) {
                 CAMERA_STREAM = video_stream;
-                try {
-                    offererPeer(video_stream);
-                } catch (error) {
-                    console.log(`🤠 -> error:`, error);
-                }
+                offererPeer(video_stream);
 
                 document.getElementById('btn-stop').disabled = false;
             });
@@ -705,12 +684,9 @@
         </script>
     </article>
 
-    <a href="https://github.com/muaz-khan/getStats" class="fork-left"></a>
-
     <footer>
         <p>
-            <a href="https://www.webrtc-experiment.com/">WebRTC Experiments</a> © <a href="https://plus.google.com/+MuazKhan" rel="author" target="_blank">Muaz Khan</a>
-            <a href="mailto:muazkh@gmail.com" target="_blank">muazkh@gmail.com</a>
+            Original code from <a href="https://www.webrtc-experiment.com/">WebRTC Experiments</a> adapted by <a href="https://wazo-platform.org/">Wazo Platform</a>
         </p>
     </footer>
 </body>
