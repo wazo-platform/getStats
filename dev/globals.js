@@ -4,7 +4,7 @@ if (typeof MediaStreamTrack === 'undefined') {
     MediaStreamTrack = {}; // todo?
 }
 
-var systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
+const systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
 
 var getStatsResult = {
     encryption: 'sha-256',
@@ -121,7 +121,7 @@ var getStatsResult = {
     }
 };
 
-var getStatsParser = {
+const getStatsParser = {
     checkIfOfferer: function(result) {
         if (result.type === 'googLibjingleSession') {
             getStatsResult.isOfferer = result.googInitiator;
@@ -129,4 +129,10 @@ var getStatsParser = {
     }
 };
 
-var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const getCodecResult = (results, codecId) => results.find(result => result.type === 'codec' && result.id === codecId);
+
+const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
+
+const getRtpResult = (results, directionType, mediaType) => results.find(r => r.type === directionType  && r.mediaType === mediaType)
+
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);

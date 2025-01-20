@@ -6,7 +6,10 @@ getStatsParser.checkVideoTracks = function(result) {
 
     const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
     // @todo double check this logic when having multiple candidates
-    const rtpResult = getStatsResult.results.find(r => r.type === rtpResultKey && r.mediaType === 'video');
+    // @todo refator... rtpResultKey, can be result.type
+    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'video');
+    if (!rtpResult) return;
+
     if (!rtpResult) return;
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);

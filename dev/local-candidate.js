@@ -27,12 +27,13 @@ getStatsParser.localcandidate = function(result) {
         LOCAL_candidateType[result.id].push(result.candidateType);
     }
 
-    if (result.transport && LOCAL_transport[result.id].indexOf(result.transport) === -1) {
-        LOCAL_transport[result.id].push(result.transport);
+    if (result.protocol && LOCAL_transport[result.id].indexOf(result.protocol) === -1) {
+        LOCAL_transport[result.id].push(result.protocol);
     }
 
-    if (result.ipAddress && LOCAL_ipAddress[result.id].indexOf(result.ipAddress + ':' + result.portNumber) === -1) {
-        LOCAL_ipAddress[result.id].push(result.ipAddress + ':' + result.portNumber);
+    const resultIpAddress = `${result.address}:${result.port}`;
+    if (result.address && LOCAL_ipAddress[result.id].indexOf(resultIpAddress) === -1) {
+        LOCAL_ipAddress[result.id].push(resultIpAddress);
     }
 
     if (result.networkType && LOCAL_networkType[result.id].indexOf(result.networkType) === -1) {
@@ -42,7 +43,7 @@ getStatsParser.localcandidate = function(result) {
     getStatsResult.internal.candidates[result.id] = {
         candidateType: LOCAL_candidateType[result.id],
         ipAddress: LOCAL_ipAddress[result.id],
-        portNumber: result.portNumber,
+        portNumber: result.port,
         networkType: LOCAL_networkType[result.id],
         priority: result.priority,
         transport: LOCAL_transport[result.id],

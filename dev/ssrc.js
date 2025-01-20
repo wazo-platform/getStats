@@ -10,9 +10,17 @@ var SSRC = {
 };
 
 getStatsParser.ssrc = function(result) {
-    if (!result.googCodecName || (result.mediaType !== 'video' && result.mediaType !== 'audio')) return;
-    if (result.type !== 'ssrc') return;
-    var sendrecvType = result.id.split('_').pop();
+    if (result.mediaType !== 'video' && result.mediaType !== 'audio') return;
+    if (result.type !== 'inbound-rtp' && result.type !== 'outbound-rtp') return;
+
+    // @todo double check this logic when having multiple candidates
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, result.mediaType);
+    if (!rtpResult) return;
+
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
+
+    const sendrecvType = result.type === 'outbound-rtp' ? 'send' : 'recv';
 
     if (SSRC[result.mediaType][sendrecvType].indexOf(result.ssrc) === -1) {
         SSRC[result.mediaType][sendrecvType].push(result.ssrc)
