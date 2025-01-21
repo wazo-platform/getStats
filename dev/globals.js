@@ -133,6 +133,6 @@ const getCodecResult = (results, codecId) => results.find(result => result.type 
 
 const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
 
-const getRtpResult = (results, directionType, mediaType) => results.find(r => r.type === directionType  && r.mediaType === mediaType)
+const getRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
 
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);

@@ -1,5 +1,5 @@
 getStatsParser.checkAudioTracks = function(result) {
-    if (result.mediaType !== 'audio') return;
+    if (result.kind !== 'audio') return;
 
     const sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;

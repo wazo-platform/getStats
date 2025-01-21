@@ -1,6 +1,6 @@
 'use strict';
 
-// Last time updated: 2021-11-22 2:06:32 PM UTC
+// Last time updated: 2025-01-21 3:27:52 PM UTC
 
 // _______________
 // getStats v1.2.0
@@ -14,932 +14,925 @@
 
 var getStats = function(mediaStreamTrack, callback, interval) {
 
-    var browserFakeUserAgent = 'Fake/5.0 (FakeOS) AppleWebKit/123 (KHTML, like Gecko) Fake/12.3.4567.89 Fake/123.45';
+var browserFakeUserAgent = 'Fake/5.0 (FakeOS) AppleWebKit/123 (KHTML, like Gecko) Fake/12.3.4567.89 Fake/123.45';
 
-    (function(that) {
-        if (!that) {
-            return;
-        }
+(function(that) {
+    if (!that) {
+        return;
+    }
 
-        if (typeof window !== 'undefined') {
-            return;
-        }
+    if (typeof window !== 'undefined') {
+        return;
+    }
 
-        if (typeof global === 'undefined') {
-            return;
-        }
+    if (typeof global === 'undefined') {
+        return;
+    }
 
-        global.navigator = {
-            userAgent: browserFakeUserAgent,
-            getUserMedia: function() {}
+    global.navigator = {
+        userAgent: browserFakeUserAgent,
+        getUserMedia: function() {}
+    };
+
+    if (!global.console) {
+        global.console = {};
+    }
+
+    if (typeof global.console.log === 'undefined' || typeof global.console.error === 'undefined') {
+        global.console.error = global.console.log = global.console.log || function() {
+            console.log(arguments);
+        };
+    }
+
+    if (typeof document === 'undefined') {
+        /*global document:true */
+        that.document = {
+            documentElement: {
+                appendChild: function() {
+                    return '';
+                }
+            }
         };
 
-        if (!global.console) {
-            global.console = {};
-        }
-
-        if (typeof global.console.log === 'undefined' || typeof global.console.error === 'undefined') {
-            global.console.error = global.console.log = global.console.log || function() {
-                console.log(arguments);
-            };
-        }
-
-        if (typeof document === 'undefined') {
-            /*global document:true */
-            that.document = {
-                documentElement: {
-                    appendChild: function() {
-                        return '';
-                    }
-                }
-            };
-
-            document.createElement = document.captureStream = document.mozCaptureStream = function() {
-                var obj = {
-                    getContext: function() {
-                        return obj;
-                    },
-                    play: function() {},
-                    pause: function() {},
-                    drawImage: function() {},
-                    toDataURL: function() {
-                        return '';
-                    }
-                };
-                return obj;
-            };
-
-            that.HTMLVideoElement = function() {};
-        }
-
-        if (typeof location === 'undefined') {
-            /*global location:true */
-            that.location = {
-                protocol: 'file:',
-                href: '',
-                hash: ''
-            };
-        }
-
-        if (typeof screen === 'undefined') {
-            /*global screen:true */
-            that.screen = {
-                width: 0,
-                height: 0
-            };
-        }
-
-        if (typeof URL === 'undefined') {
-            /*global screen:true */
-            that.URL = {
-                createObjectURL: function() {
-                    return '';
+        document.createElement = document.captureStream = document.mozCaptureStream = function() {
+            var obj = {
+                getContext: function() {
+                    return obj;
                 },
-                revokeObjectURL: function() {
+                play: function() {},
+                pause: function() {},
+                drawImage: function() {},
+                toDataURL: function() {
                     return '';
                 }
             };
-        }
+            return obj;
+        };
 
-        if (typeof MediaStreamTrack === 'undefined') {
-            /*global screen:true */
-            that.MediaStreamTrack = function() {};
-        }
+        that.HTMLVideoElement = function() {};
+    }
 
-        if (typeof RTCPeerConnection === 'undefined') {
-            /*global screen:true */
-            that.RTCPeerConnection = function() {};
-        }
+    if (typeof location === 'undefined') {
+        /*global location:true */
+        that.location = {
+            protocol: 'file:',
+            href: '',
+            hash: ''
+        };
+    }
 
-        /*global window:true */
-        that.window = global;
-    })(typeof global !== 'undefined' ? global : null);
+    if (typeof screen === 'undefined') {
+        /*global screen:true */
+        that.screen = {
+            width: 0,
+            height: 0
+        };
+    }
 
-    var RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+    if (typeof URL === 'undefined') {
+        /*global screen:true */
+        that.URL = {
+            createObjectURL: function() {
+                return '';
+            },
+            revokeObjectURL: function() {
+                return '';
+            }
+        };
+    }
 
     if (typeof MediaStreamTrack === 'undefined') {
-        MediaStreamTrack = {}; // todo?
+        /*global screen:true */
+        that.MediaStreamTrack = function() {};
     }
 
-    var systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
+    if (typeof RTCPeerConnection === 'undefined') {
+        /*global screen:true */
+        that.RTCPeerConnection = function() {};
+    }
 
-    var getStatsResult = {
-        encryption: 'sha-256',
+    /*global window:true */
+    that.window = global;
+})(typeof global !== 'undefined' ? global : null);
+
+var RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+
+if (typeof MediaStreamTrack === 'undefined') {
+    MediaStreamTrack = {}; // todo?
+}
+
+const systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
+
+var getStatsResult = {
+    encryption: 'sha-256',
+    audio: {
+        send: {
+            tracks: [],
+            codecs: [],
+            availableBandwidth: 0,
+            streams: 0,
+            framerateMean: 0,
+            bitrateMean: 0
+        },
+        recv: {
+            tracks: [],
+            codecs: [],
+            availableBandwidth: 0,
+            streams: 0,
+            framerateMean: 0,
+            bitrateMean: 0
+        },
+        bytesSent: 0,
+        bytesReceived: 0,
+        latency: 0,
+        packetsLost: 0
+    },
+    video: {
+        send: {
+            tracks: [],
+            codecs: [],
+            availableBandwidth: 0,
+            streams: 0,
+            framerateMean: 0,
+            bitrateMean: 0
+        },
+        recv: {
+            tracks: [],
+            codecs: [],
+            availableBandwidth: 0,
+            streams: 0,
+            framerateMean: 0,
+            bitrateMean: 0
+        },
+        bytesSent: 0,
+        bytesReceived: 0,
+        latency: 0,
+        packetsLost: 0
+    },
+    bandwidth: {
+        systemBandwidth: 0,
+        sentPerSecond: 0,
+        encodedPerSecond: 0,
+        helper: {
+            audioBytesSent: 0,
+            videoBytestSent: 0
+        },
+        speed: 0
+    },
+    results: {},
+    connectionType: {
+        systemNetworkType: systemNetworkType,
+        systemIpAddress: '192.168.1.2',
+        local: {
+            candidateType: [],
+            transport: [],
+            ipAddress: [],
+            networkType: []
+        },
+        remote: {
+            candidateType: [],
+            transport: [],
+            ipAddress: [],
+            networkType: []
+        }
+    },
+    resolutions: {
+        send: {
+            width: 0,
+            height: 0
+        },
+        recv: {
+            width: 0,
+            height: 0
+        }
+    },
+    internal: {
         audio: {
-            send: {
-                tracks: [],
-                codecs: [],
-                availableBandwidth: 0,
-                streams: 0,
-                framerateMean: 0,
-                bitrateMean: 0
-            },
-            recv: {
-                tracks: [],
-                codecs: [],
-                availableBandwidth: 0,
-                streams: 0,
-                framerateMean: 0,
-                bitrateMean: 0
-            },
-            bytesSent: 0,
-            bytesReceived: 0,
-            latency: 0,
-            packetsLost: 0
+            send: {},
+            recv: {}
         },
         video: {
-            send: {
-                tracks: [],
-                codecs: [],
-                availableBandwidth: 0,
-                streams: 0,
-                framerateMean: 0,
-                bitrateMean: 0
-            },
-            recv: {
-                tracks: [],
-                codecs: [],
-                availableBandwidth: 0,
-                streams: 0,
-                framerateMean: 0,
-                bitrateMean: 0
-            },
-            bytesSent: 0,
-            bytesReceived: 0,
-            latency: 0,
-            packetsLost: 0
+            send: {},
+            recv: {}
         },
-        bandwidth: {
-            systemBandwidth: 0,
-            sentPerSecond: 0,
-            encodedPerSecond: 0,
-            helper: {
-                audioBytesSent: 0,
-                videoBytestSent: 0
-            },
-            speed: 0
-        },
-        results: {},
-        connectionType: {
-            systemNetworkType: systemNetworkType,
-            systemIpAddress: '192.168.1.2',
-            local: {
-                candidateType: [],
-                transport: [],
-                ipAddress: [],
-                networkType: []
-            },
-            remote: {
-                candidateType: [],
-                transport: [],
-                ipAddress: [],
-                networkType: []
-            }
-        },
-        resolutions: {
-            send: {
-                width: 0,
-                height: 0
-            },
-            recv: {
-                width: 0,
-                height: 0
-            }
-        },
-        internal: {
-            audio: {
-                send: {},
-                recv: {}
-            },
-            video: {
-                send: {},
-                recv: {}
-            },
-            candidates: {},
-            getSendrecvType: function(result) {
-                var sendrecvType = result.id.split('_').pop();
-                if ('isRemote' in result) {
-                    if (result.isRemote === true) {
-                        sendrecvType = 'recv';
-                    }
-                    if (result.isRemote === false) {
-                        sendrecvType = 'send';
-                    }
-                } else {
-                    var direction = result.type.split('-')[0];
-                    sendrecvType = direction === 'outbound' ? 'send' : (direction === 'inbound' ? 'recv' : null);
+        candidates: {},
+        getSendrecvType: function(result) {
+            var sendrecvType = result.id.split('_').pop();
+            if ('isRemote' in result) {
+                if (result.isRemote === true) {
+                    sendrecvType = 'recv';
                 }
-
-                return sendrecvType;
-            },
-        },
-        nomore: function() {
-            nomore = true;
-        }
-    };
-
-    var getStatsParser = {
-        checkIfOfferer: function(result) {
-            if (result.type === 'googLibjingleSession') {
-                getStatsResult.isOfferer = result.googInitiator;
+                if (result.isRemote === false) {
+                    sendrecvType = 'send';
+                }
+            } else {
+                var direction = result.type.split('-')[0];
+                sendrecvType = direction === 'outbound' ? 'send' : (direction === 'inbound' ? 'recv' : null);
             }
+
+            return sendrecvType;
+        },
+    },
+    nomore: function() {
+        nomore = true;
+    }
+};
+
+const getStatsParser = {
+    checkIfOfferer: function(result) {
+        if (result.type === 'googLibjingleSession') {
+            getStatsResult.isOfferer = result.googInitiator;
         }
-    };
-
-    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-    var peer = this;
-
-    if (!(arguments[0] instanceof RTCPeerConnection)) {
-        throw '1st argument is not instance of RTCPeerConnection.';
     }
+};
 
-    peer = arguments[0];
+const getCodecResult = (results, codecId) => results.find(result => result.type === 'codec' && result.id === codecId);
 
-    if (arguments[1] instanceof MediaStreamTrack) {
-        mediaStreamTrack = arguments[1]; // redundant on non-safari
-        callback = arguments[2];
-        interval = arguments[3];
-    }
+const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
 
-    var nomore = false;
+const getRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
 
-    function getStatsLooper() {
-        getStatsWrapper(function(results) {
-            if (!results || !results.forEach) return;
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-            results.forEach(function(result) {
-                // console.error('result', result);
-                Object.keys(getStatsParser).forEach(function(key) {
-                    if (typeof getStatsParser[key] === 'function') {
-                        try {
-                            getStatsParser[key](result);
-                        } catch (e) {
-                            console.error(e.message, e.stack, e);
-                        }
+var peer = this;
+
+if (!(arguments[0] instanceof RTCPeerConnection)) {
+    throw '1st argument is not instance of RTCPeerConnection.';
+}
+
+peer = arguments[0];
+
+if (arguments[1] instanceof MediaStreamTrack) {
+    mediaStreamTrack = arguments[1]; // redundant on non-safari
+    callback = arguments[2];
+    interval = arguments[3];
+}
+
+var nomore = false;
+
+function getStatsLooper() {
+    getStatsWrapper(function(results) {
+        if (!results || !results.forEach) return;
+
+        console.log(`🤠 -> getStatsWrapper -> results:`, results.map(result => [result.type, result], ));
+        // console.log(`🤠 -> getStatsWrapper -> resultsAll:`, JSON.stringify(results, null, 2));
+
+        // allow users to access native results
+        getStatsResult.results = results;
+
+        results.forEach(function(result) {
+            Object.keys(getStatsParser).forEach(function(key) {
+                if (typeof getStatsParser[key] === 'function') {
+                    try {
+                        getStatsParser[key](result);
+                    } catch (e) {
+                        console.error(e.message, e.stack, e);
                     }
-                });
+                }
             });
+        });
 
-            try {
-                if (peer.iceConnectionState.search(/failed|closed|disconnected/gi) !== -1) {
-                    nomore = true;
-                }
-            } catch (e) {
+        try {
+            if (peer.iceConnectionState.search(/failed|closed|disconnected/gi) !== -1) {
                 nomore = true;
             }
+        } catch (e) {
+            nomore = true;
+        }
 
-            if (nomore === true) {
-                if (getStatsResult.datachannel) {
-                    getStatsResult.datachannel.state = 'close';
-                }
-                getStatsResult.ended = true;
+        if (nomore === true) {
+            if (getStatsResult.datachannel) {
+                getStatsResult.datachannel.state = 'close';
             }
+            getStatsResult.ended = true;
+        }
 
-            // allow users to access native results
-            getStatsResult.results = results;
+        if (getStatsResult.audio && getStatsResult.video) {
+            getStatsResult.bandwidth.speed = (getStatsResult.audio.bytesSent - getStatsResult.bandwidth.helper.audioBytesSent) + (getStatsResult.video.bytesSent - getStatsResult.bandwidth.helper.videoBytesSent);
+            getStatsResult.bandwidth.helper.audioBytesSent = getStatsResult.audio.bytesSent;
+            getStatsResult.bandwidth.helper.videoBytesSent = getStatsResult.video.bytesSent;
+        }
 
-            if (getStatsResult.audio && getStatsResult.video) {
-                getStatsResult.bandwidth.speed = (getStatsResult.audio.bytesSent - getStatsResult.bandwidth.helper.audioBytesSent) + (getStatsResult.video.bytesSent - getStatsResult.bandwidth.helper.videoBytesSent);
-                getStatsResult.bandwidth.helper.audioBytesSent = getStatsResult.audio.bytesSent;
-                getStatsResult.bandwidth.helper.videoBytesSent = getStatsResult.video.bytesSent;
-            }
+        callback(getStatsResult);
 
-            callback(getStatsResult);
+        // second argument checks to see, if target-user is still connected.
+        if (!nomore) {
+            typeof interval != undefined && interval && setTimeout(getStatsLooper, interval || 1000);
+        }
+    });
+}
 
-            // second argument checks to see, if target-user is still connected.
-            if (!nomore) {
-                typeof interval != undefined && interval && setTimeout(getStatsLooper, interval || 1000);
-            }
+// a wrapper around getStats which hides the differences (where possible)
+// following code-snippet is taken from somewhere on the github
+function getStatsWrapper(cb) {
+    peer.getStats(window.mediaStreamTrack || null).then(function(res) {
+        var items = [];
+        res.forEach(function(r) {
+            items.push(r);
         });
+        cb(items);
+    }).catch(cb);
+};
+
+getStatsParser.datachannel = function(result) {
+    if (result.type !== 'datachannel') return;
+
+    getStatsResult.datachannel = {
+        state: result.state // open or connecting
+    }
+};
+
+getStatsParser.googCertificate = function(result) {
+    if (result.type == 'certificate') {
+        const transportResult = getStatsResult.results.find(r => r.type === 'transport');
+
+        if (transportResult.localCertificateId === result.id) {
+            getStatsResult.encryption = result.fingerprintAlgorithm; // local candidate as default value
+            getStatsResult.encryptionLocal = result.fingerprintAlgorithm;
+        }
+
+        if (transportResult.remoteCertificateId === result.id) {
+            getStatsResult.encryptionRemote = result.fingerprintAlgorithm;
+        }
+    }
+};
+
+getStatsParser.checkAudioTracks = function(result) {
+    if (result.kind !== 'audio') return;
+
+    const sendrecvType = getStatsResult.internal.getSendrecvType(result);
+    if (!sendrecvType) return;
+
+    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
+    // @todo double check this logic when having multiple candidates
+    // @todo refator... rtpResultKey, can be result.type
+    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'audio');
+    if (!rtpResult) return;
+
+    if (!rtpResult) return;
+
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
+
+    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
+    if (!mediaPlayoutResult) return;
+
+    const currentCodec = getCodecName(codecResult.mimeType) || 'opus';
+    if (getStatsResult.audio[sendrecvType].codecs.indexOf(currentCodec) === -1) {
+        getStatsResult.audio[sendrecvType].codecs.push(currentCodec);
     }
 
-    // a wrapper around getStats which hides the differences (where possible)
-    // following code-snippet is taken from somewhere on the github
-    function getStatsWrapper(cb) {
-        // if !peer or peer.signalingState == 'closed' then return;
-        peer.getStats(window.mediaStreamTrack || null).then(function(res) {
-            var items = [];
-            res.forEach(function(r) {
-                items.push(r);
-            });
-            cb(items);
-        }).catch(cb);
-    };
-
-    getStatsParser.datachannel = function(result) {
-        if (result.type !== 'datachannel') return;
-
-        getStatsResult.datachannel = {
-            state: result.state // open or connecting
-        }
-    };
-
-    getStatsParser.googCertificate = function(result) {
-        if (result.type == 'googCertificate') {
-            getStatsResult.encryption = result.googFingerprintAlgorithm;
-        }
-
-        // Safari-11 or higher
-        if (result.type == 'certificate') {
-            // todo: is it possible to have different encryption methods for senders and receivers?
-            // if yes, then we need to set:
-            //    getStatsResult.encryption.local = value;
-            //    getStatsResult.encryption.remote = value;
-            getStatsResult.encryption = result.fingerprintAlgorithm;
-        }
-    };
-
-    getStatsParser.checkAudioTracks = function(result) {
-        if (result.mediaType !== 'audio') return;
-
-        var sendrecvType = getStatsResult.internal.getSendrecvType(result);
-
-        if (!sendrecvType) return;
-
-        if (getStatsResult.audio[sendrecvType].codecs.indexOf(result.googCodecName || 'opus') === -1) {
-            getStatsResult.audio[sendrecvType].codecs.push(result.googCodecName || 'opus');
-        }
-
-        if (!!result.bytesSent) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.audio[sendrecvType].prevBytesSent) {
-                getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
-            }
-
-            var bytes = result.bytesSent - getStatsResult.internal.audio[sendrecvType].prevBytesSent;
+    if (!!result.bytesSent) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.audio[sendrecvType].prevBytesSent) {
             getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
-
-            kilobytes = bytes / 1024;
-            getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult.audio.bytesSent = kilobytes.toFixed(1);
         }
 
-        if (!!result.bytesReceived) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.audio[sendrecvType].prevBytesReceived) {
-                getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
-            }
+        var bytes = result.bytesSent - getStatsResult.internal.audio[sendrecvType].prevBytesSent;
+        getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
 
-            var bytes = result.bytesReceived - getStatsResult.internal.audio[sendrecvType].prevBytesReceived;
+        kilobytes = bytes / 1024;
+        getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult.audio.bytesSent = kilobytes.toFixed(1);
+    }
+
+    if (!!result.bytesReceived) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.audio[sendrecvType].prevBytesReceived) {
             getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
-
-            kilobytes = bytes / 1024;
-
-            // getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult.audio.bytesReceived = kilobytes.toFixed(1);
         }
 
-        if (result.googTrackId && getStatsResult.audio[sendrecvType].tracks.indexOf(result.googTrackId) === -1) {
-            getStatsResult.audio[sendrecvType].tracks.push(result.googTrackId);
+        var bytes = result.bytesReceived - getStatsResult.internal.audio[sendrecvType].prevBytesReceived;
+        getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
+
+        kilobytes = bytes / 1024;
+
+        // getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult.audio.bytesReceived = kilobytes.toFixed(1);
+    }
+
+    if (result.trackIdentifier && getStatsResult.audio[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
+        getStatsResult.audio[sendrecvType].tracks.push(result.trackIdentifier);
+    }
+
+    // calculate latency
+    // @todo latency still not working as expected... do not expect 0 or below ...
+    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
+    if (!!currentDelayMs) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.audio.prevGoogCurrentDelayMs) {
+            getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
         }
 
-        // calculate latency
-        if (!!result.googCurrentDelayMs) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.audio.prevGoogCurrentDelayMs) {
-                getStatsResult.internal.audio.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
-            }
+        var bytes = currentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
+        getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
 
-            var bytes = result.googCurrentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
-            getStatsResult.internal.audio.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+        getStatsResult.audio.latency = bytes.toFixed(1);
 
-            getStatsResult.audio.latency = bytes.toFixed(1);
+        if (getStatsResult.audio.latency < 0) {
+            getStatsResult.audio.latency = 0;
+        }
+    }
 
-            if (getStatsResult.audio.latency < 0) {
-                getStatsResult.audio.latency = 0;
-            }
+    // calculate packetsLost
+    if (!!rtpResult.packetsLost) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.audio.prevPacketsLost) {
+            getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
         }
 
-        // calculate packetsLost
-        if (!!result.packetsLost) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.audio.prevPacketsLost) {
-                getStatsResult.internal.audio.prevPacketsLost = result.packetsLost;
-            }
+        var bytes = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
+        getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
 
-            var bytes = result.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
-            getStatsResult.internal.audio.prevPacketsLost = result.packetsLost;
+        getStatsResult.audio.packetsLost = bytes.toFixed(1);
 
-            getStatsResult.audio.packetsLost = bytes.toFixed(1);
-
-            if (getStatsResult.audio.packetsLost < 0) {
-                getStatsResult.audio.packetsLost = 0;
-            }
+        if (getStatsResult.audio.packetsLost < 0) {
+            getStatsResult.audio.packetsLost = 0;
         }
-    };
+    }
+};
 
-    getStatsParser.checkVideoTracks = function(result) {
-        if (result.mediaType !== 'video') return;
+getStatsParser.checkVideoTracks = function(result) {
+    if (result.kind !== 'video') return;
 
-        var sendrecvType = getStatsResult.internal.getSendrecvType(result);
+    var sendrecvType = getStatsResult.internal.getSendrecvType(result);
+    if (!sendrecvType) return;
 
-        if (!sendrecvType) return;
+    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
+    // @todo double check this logic when having multiple candidates
+    // @todo refator... rtpResultKey, can be result.type
+    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'video');
+    if (!rtpResult) return;
 
-        if (getStatsResult.video[sendrecvType].codecs.indexOf(result.googCodecName || 'VP8') === -1) {
-            getStatsResult.video[sendrecvType].codecs.push(result.googCodecName || 'VP8');
-        }
+    if (!rtpResult) return;
 
-        if (!!result.bytesSent) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video[sendrecvType].prevBytesSent) {
-                getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
-            }
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
 
-            var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBytesSent;
+    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
+    if (!mediaPlayoutResult) return;
+
+    const currentCodec = getCodecName(codecResult.mimeType) || 'VP8';
+    if (getStatsResult.video[sendrecvType].codecs.indexOf(currentCodec) === -1) {
+        getStatsResult.video[sendrecvType].codecs.push(currentCodec);
+    }
+
+    if (!!result.bytesSent) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video[sendrecvType].prevBytesSent) {
             getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
-
-            kilobytes = bytes / 1024;
-
-            getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult.video.bytesSent = kilobytes.toFixed(1);
         }
 
-        if (!!result.bytesReceived) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video[sendrecvType].prevBytesReceived) {
-                getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
-            }
+        var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBytesSent;
+        getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
 
-            var bytes = result.bytesReceived - getStatsResult.internal.video[sendrecvType].prevBytesReceived;
+        kilobytes = bytes / 1024;
+
+        getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult.video.bytesSent = kilobytes.toFixed(1);
+    }
+
+    if (!!result.bytesReceived) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video[sendrecvType].prevBytesReceived) {
             getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
-
-            kilobytes = bytes / 1024;
-            // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult.video.bytesReceived = kilobytes.toFixed(1);
         }
 
-        if (result.googFrameHeightReceived && result.googFrameWidthReceived) {
-            getStatsResult.resolutions[sendrecvType].width = result.googFrameWidthReceived;
-            getStatsResult.resolutions[sendrecvType].height = result.googFrameHeightReceived;
+        var bytes = result.bytesReceived - getStatsResult.internal.video[sendrecvType].prevBytesReceived;
+        getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
+
+        kilobytes = bytes / 1024;
+        // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult.video.bytesReceived = kilobytes.toFixed(1);
+    }
+
+    if (rtpResult.frameHeight && result.frameWidth) {
+        getStatsResult.resolutions[sendrecvType].width = result.frameHeight;
+        getStatsResult.resolutions[sendrecvType].height = result.frameHeight;
+    }
+
+    if (result.trackIdentifier && getStatsResult.video[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
+        getStatsResult.video[sendrecvType].tracks.push(result.trackIdentifier);
+    }
+
+    // @todo do not to existing in the migration guide and note inside the payload of result
+    if (result.framerateMean) {
+        getStatsResult.bandwidth.framerateMean = result.framerateMean;
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video[sendrecvType].prevFramerateMean) {
+            getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.bitrateMean;
         }
 
-        if (result.googFrameHeightSent && result.googFrameWidthSent) {
-            getStatsResult.resolutions[sendrecvType].width = result.googFrameWidthSent;
-            getStatsResult.resolutions[sendrecvType].height = result.googFrameHeightSent;
-        }
+        var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevFramerateMean;
+        getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.framerateMean;
 
-        if (result.googTrackId && getStatsResult.video[sendrecvType].tracks.indexOf(result.googTrackId) === -1) {
-            getStatsResult.video[sendrecvType].tracks.push(result.googTrackId);
-        }
+        kilobytes = bytes / 1024;
+        getStatsResult.video[sendrecvType].framerateMean = bytes.toFixed(1);
+    }
 
-        if (result.framerateMean) {
-            getStatsResult.bandwidth.framerateMean = result.framerateMean;
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video[sendrecvType].prevFramerateMean) {
-                getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.bitrateMean;
-            }
-
-            var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevFramerateMean;
-            getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.framerateMean;
-
-            kilobytes = bytes / 1024;
-            getStatsResult.video[sendrecvType].framerateMean = bytes.toFixed(1);
-        }
-
-        if (result.bitrateMean) {
-            getStatsResult.bandwidth.bitrateMean = result.bitrateMean;
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video[sendrecvType].prevBitrateMean) {
-                getStatsResult.internal.video[sendrecvType].prevBitrateMean = result.bitrateMean;
-            }
-
-            var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBitrateMean;
+    // @todo do not to existing in the migration guide and note inside the payload of result
+    if (result.bitrateMean) {
+        getStatsResult.bandwidth.bitrateMean = result.bitrateMean;
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video[sendrecvType].prevBitrateMean) {
             getStatsResult.internal.video[sendrecvType].prevBitrateMean = result.bitrateMean;
-
-            kilobytes = bytes / 1024;
-            getStatsResult.video[sendrecvType].bitrateMean = bytes.toFixed(1);
         }
 
-        // calculate latency
-        if (!!result.googCurrentDelayMs) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video.prevGoogCurrentDelayMs) {
-                getStatsResult.internal.video.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
-            }
+        var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBitrateMean;
+        getStatsResult.internal.video[sendrecvType].prevBitrateMean = result.bitrateMean;
 
-            var bytes = result.googCurrentDelayMs - getStatsResult.internal.video.prevGoogCurrentDelayMs;
-            getStatsResult.internal.video.prevGoogCurrentDelayMs = result.googCurrentDelayMs;
+        kilobytes = bytes / 1024;
+        getStatsResult.video[sendrecvType].bitrateMean = bytes.toFixed(1);
+    }
 
-            getStatsResult.video.latency = bytes.toFixed(1);
-
-            if (getStatsResult.video.latency < 0) {
-                getStatsResult.video.latency = 0;
-            }
+    // calculate latency
+    // @todo latency still not working as expected... do not expect 0 or below ...
+    // Possible interesting values
+    // 'remote-inbout-rpt' (kind, roundTripTime, roundTripTimeMeasurements?)
+    console.log('video', rtpResult, rtpResult.jitterBufferDelay);
+    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
+    if (!!currentDelayMs) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video.prevGoogCurrentDelayMs) {
+            getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
         }
 
-        // calculate packetsLost
-        if (!!result.packetsLost) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal.video.prevPacketsLost) {
-                getStatsResult.internal.video.prevPacketsLost = result.packetsLost;
-            }
+        var bytes = currentDelayMs - getStatsResult.internal.video.prevGoogCurrentDelayMs;
+        getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
 
-            var bytes = result.packetsLost - getStatsResult.internal.video.prevPacketsLost;
+        getStatsResult.video.latency = bytes.toFixed(1);
+
+        if (getStatsResult.video.latency < 0) {
+            getStatsResult.video.latency = 0;
+        }
+    }
+
+    // calculate packetsLost
+    if (!!result.packetsLost) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal.video.prevPacketsLost) {
             getStatsResult.internal.video.prevPacketsLost = result.packetsLost;
-
-            getStatsResult.video.packetsLost = bytes.toFixed(1);
-
-            if (getStatsResult.video.packetsLost < 0) {
-                getStatsResult.video.packetsLost = 0;
-            }
         }
+
+        var bytes = result.packetsLost - getStatsResult.internal.video.prevPacketsLost;
+        getStatsResult.internal.video.prevPacketsLost = result.packetsLost;
+
+        getStatsResult.video.packetsLost = bytes.toFixed(1);
+
+        if (getStatsResult.video.packetsLost < 0) {
+            getStatsResult.video.packetsLost = 0;
+        }
+    }
+};
+
+getStatsParser.bweforvideo = function(result) {
+    if (result.type === 'candidate-pair') {
+        getStatsResult.bandwidth.availableSendBandwidth = result.availableOutgoingBitrate || 0;
+        getStatsResult.bandwidth.googAvailableSendBandwidth = result.availableOutgoingBitrate || 0;
+        getStatsResult.bandwidth.googAvailableReceiveBandwidth = result.availableIncomingBitrate || 0; // @todo not available anymore, check when using ICE
+        getStatsResult.bandwidth.googTransmitBitrate = result.bytesSent || 0;
     };
 
-    getStatsParser.bweforvideo = function(result) {
-        if (result.type !== 'VideoBwe') return;
+    if (result.type === 'outbound-rtp') {
+        getStatsResult.bandwidth.googBucketDelay = result.packetsSent > 0 ? result.totalPacketSendDelay / result.packetsSent : 0;
+        getStatsResult.bandwidth.googTargetEncBitrate = result.headerBytesSent + result.bytesSent;
+        getStatsResult.bandwidth.googActualEncBitrate = result.bytesSent - result.retransmittedBytesSent;
+        getStatsResult.bandwidth.googRetransmitBitrate = result.retransmittedBytesSent;
+    }
+};
 
-        getStatsResult.bandwidth.availableSendBandwidth = result.googAvailableSendBandwidth;
+getStatsParser.candidatePair = function(result) {
+    if (isSafari) return; // We do not support Safari
+    if (result.type !== 'googCandidatePair' && result.type !== 'candidate-pair' && result.type !== 'local-candidate' && result.type !== 'remote-candidate') return;
+    const transportResult = getStatsResult.results.find(result => result.type === 'transport');
+    const localCandidateResult = getStatsResult.results.find(result => result.type === 'local-candidate');
 
-        getStatsResult.bandwidth.googActualEncBitrate = result.googActualEncBitrate;
-        getStatsResult.bandwidth.googAvailableSendBandwidth = result.googAvailableSendBandwidth;
-        getStatsResult.bandwidth.googAvailableReceiveBandwidth = result.googAvailableReceiveBandwidth;
-        getStatsResult.bandwidth.googRetransmitBitrate = result.googRetransmitBitrate;
-        getStatsResult.bandwidth.googTargetEncBitrate = result.googTargetEncBitrate;
-        getStatsResult.bandwidth.googBucketDelay = result.googBucketDelay;
-        getStatsResult.bandwidth.googTransmitBitrate = result.googTransmitBitrate;
+    // The active connection refers to the candidate pair that is currently selected by the transport
+    // Logic from deprecated `googActiveConnection`, whish should means either STUN or TURN is used.
+    const isStunTurnUsed = transportResult && transportResult.selectedCandidatePairId === result.id;
+
+    if (isStunTurnUsed) {
+        Object.keys(getStatsResult.internal.candidates).forEach(function(cid) {
+            const candidate = getStatsResult.internal.candidates[cid];
+
+            if (candidate.id === result.localCandidateId) {
+                getStatsResult.connectionType.local.candidateType = candidate.candidateType;
+                getStatsResult.connectionType.local.ipAddress = candidate.ipAddress;
+                getStatsResult.connectionType.local.networkType = candidate.networkType;
+                getStatsResult.connectionType.local.transport = candidate.transport;
+            }
+
+            if (candidate.id === result.remoteCandidateId) {
+                getStatsResult.connectionType.remote.candidateType = candidate.candidateType;
+                getStatsResult.connectionType.remote.ipAddress = candidate.ipAddress;
+                getStatsResult.connectionType.remote.networkType = candidate.networkType;
+                getStatsResult.connectionType.remote.transport = candidate.transport;
+            }
+        });
+
+        // Use local-candidate to define transport
+        getStatsResult.connectionType.transport = localCandidateResult.protocol;
+
+        let localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
+        if (localCandidate) {
+            if (localCandidate.ipAddress) {
+                getStatsResult.connectionType.systemIpAddress = localCandidate.ipAddress;
+            }
+        }
+
+        let remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+        if (remoteCandidate) {
+            if (remoteCandidate.ipAddress) {
+                getStatsResult.connectionType.systemIpAddress = remoteCandidate.ipAddress;
+            }
+        }
+    }
+
+    if (result.type === 'candidate-pair') {
+        if (result.selected === true && result.nominated === true && result.state === 'succeeded') {
+            // Firefox used below two pairs for connection
+            localCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+            remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+        }
+    }
+
+    if (result.type === 'local-candidate') {
+        getStatsResult.connectionType.local.candidateType = result.candidateType;
+        getStatsResult.connectionType.local.ipAddress = result.adress;
+        getStatsResult.connectionType.local.networkType = result.networkType;
+        getStatsResult.connectionType.local.transport = result.protocol;
+    }
+
+    if (result.type === 'remote-candidate') {
+        getStatsResult.connectionType.remote.candidateType = result.candidateType;
+        getStatsResult.connectionType.remote.ipAddress = result.adress;
+        getStatsResult.connectionType.remote.networkType = result.networkType;
+        getStatsResult.connectionType.remote.transport = result.protocol;
+    }
+};
+
+var LOCAL_candidateType = {};
+var LOCAL_transport = {};
+var LOCAL_ipAddress = {};
+var LOCAL_networkType = {};
+
+getStatsParser.localcandidate = function(result) {
+    if (result.type !== 'localcandidate' && result.type !== 'local-candidate') return;
+    if (!result.id) return;
+
+    if (!LOCAL_candidateType[result.id]) {
+        LOCAL_candidateType[result.id] = [];
+    }
+
+    if (!LOCAL_transport[result.id]) {
+        LOCAL_transport[result.id] = [];
+    }
+
+    if (!LOCAL_ipAddress[result.id]) {
+        LOCAL_ipAddress[result.id] = [];
+    }
+
+    if (!LOCAL_networkType[result.id]) {
+        LOCAL_networkType[result.id] = [];
+    }
+
+    if (result.candidateType && LOCAL_candidateType[result.id].indexOf(result.candidateType) === -1) {
+        LOCAL_candidateType[result.id].push(result.candidateType);
+    }
+
+    if (result.protocol && LOCAL_transport[result.id].indexOf(result.protocol) === -1) {
+        LOCAL_transport[result.id].push(result.protocol);
+    }
+
+    const resultIpAddress = `${result.address}:${result.port}`;
+    if (result.address && LOCAL_ipAddress[result.id].indexOf(resultIpAddress) === -1) {
+        LOCAL_ipAddress[result.id].push(resultIpAddress);
+    }
+
+    if (result.networkType && LOCAL_networkType[result.id].indexOf(result.networkType) === -1) {
+        LOCAL_networkType[result.id].push(result.networkType);
+    }
+
+    getStatsResult.internal.candidates[result.id] = {
+        candidateType: LOCAL_candidateType[result.id],
+        ipAddress: LOCAL_ipAddress[result.id],
+        portNumber: result.port,
+        networkType: LOCAL_networkType[result.id],
+        priority: result.priority,
+        transport: LOCAL_transport[result.id],
+        timestamp: result.timestamp,
+        id: result.id,
+        type: result.type
     };
 
-    getStatsParser.candidatePair = function(result) {
-        if (result.type !== 'googCandidatePair' && result.type !== 'candidate-pair' && result.type !== 'local-candidate' && result.type !== 'remote-candidate') return;
+    getStatsResult.connectionType.local.candidateType = LOCAL_candidateType[result.id];
+    getStatsResult.connectionType.local.ipAddress = LOCAL_ipAddress[result.id];
+    getStatsResult.connectionType.local.networkType = LOCAL_networkType[result.id];
+    getStatsResult.connectionType.local.transport = LOCAL_transport[result.id];
+};
 
-        // result.googActiveConnection means either STUN or TURN is used.
+var REMOTE_candidateType = {};
+var REMOTE_transport = {};
+var REMOTE_ipAddress = {};
+var REMOTE_networkType = {};
 
-        if (result.googActiveConnection == 'true') {
-            // id === 'Conn-audio-1-0'
-            // localCandidateId, remoteCandidateId
+getStatsParser.remotecandidate = function(result) {
+    if (result.type !== 'remotecandidate' && result.type !== 'remote-candidate') return;
+    if (!result.id) return;
 
-            // bytesSent, bytesReceived
+    if (!REMOTE_candidateType[result.id]) {
+        REMOTE_candidateType[result.id] = [];
+    }
 
-            Object.keys(getStatsResult.internal.candidates).forEach(function(cid) {
-                var candidate = getStatsResult.internal.candidates[cid];
-                if (candidate.ipAddress.indexOf(result.googLocalAddress) !== -1) {
-                    getStatsResult.connectionType.local.candidateType = candidate.candidateType;
-                    getStatsResult.connectionType.local.ipAddress = candidate.ipAddress;
-                    getStatsResult.connectionType.local.networkType = candidate.networkType;
-                    getStatsResult.connectionType.local.transport = candidate.transport;
-                }
-                if (candidate.ipAddress.indexOf(result.googRemoteAddress) !== -1) {
-                    getStatsResult.connectionType.remote.candidateType = candidate.candidateType;
-                    getStatsResult.connectionType.remote.ipAddress = candidate.ipAddress;
-                    getStatsResult.connectionType.remote.networkType = candidate.networkType;
-                    getStatsResult.connectionType.remote.transport = candidate.transport;
-                }
-            });
+    if (!REMOTE_transport[result.id]) {
+        REMOTE_transport[result.id] = [];
+    }
 
-            getStatsResult.connectionType.transport = result.googTransportType;
+    if (!REMOTE_ipAddress[result.id]) {
+        REMOTE_ipAddress[result.id] = [];
+    }
 
-            var localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
-            if (localCandidate) {
-                if (localCandidate.ipAddress) {
-                    getStatsResult.connectionType.systemIpAddress = localCandidate.ipAddress;
-                }
-            }
+    if (!REMOTE_networkType[result.id]) {
+        REMOTE_networkType[result.id] = [];
+    }
 
-            var remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
-            if (remoteCandidate) {
-                if (remoteCandidate.ipAddress) {
-                    getStatsResult.connectionType.systemIpAddress = remoteCandidate.ipAddress;
-                }
-            }
-        }
+    if (result.candidateType && REMOTE_candidateType[result.id].indexOf(result.candidateType) === -1) {
+        REMOTE_candidateType[result.id].push(result.candidateType);
+    }
 
-        if (result.type === 'candidate-pair') {
-            if (result.selected === true && result.nominated === true && result.state === 'succeeded') {
-                // remoteCandidateId, localCandidateId, componentId
-                var localCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
-                var remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+    if (result.protocol && REMOTE_transport[result.id].indexOf(result.protocol) === -1) {
+        REMOTE_transport[result.id].push(result.protocol);
+    }
 
-                // Firefox used above two pairs for connection
-            }
-        }
+    const resultIpAddress = `${result.address}:${result.port}`;
+    if (result.address && REMOTE_ipAddress[result.id].indexOf(resultIpAddress) === -1) {
+        REMOTE_ipAddress[result.id].push(resultIpAddress);
+    }
 
-        if (result.type === 'local-candidate') {
-            getStatsResult.connectionType.local.candidateType = result.candidateType;
-            getStatsResult.connectionType.local.ipAddress = result.ipAddress;
-            getStatsResult.connectionType.local.networkType = result.networkType;
-            getStatsResult.connectionType.local.transport = result.mozLocalTransport || result.transport;
-        }
+    if (result.networkType && REMOTE_networkType[result.id].indexOf(result.networkType) === -1) {
+        REMOTE_networkType[result.id].push(result.networkType);
+    }
 
-        if (result.type === 'remote-candidate') {
-            getStatsResult.connectionType.remote.candidateType = result.candidateType;
-            getStatsResult.connectionType.remote.ipAddress = result.ipAddress;
-            getStatsResult.connectionType.remote.networkType = result.networkType;
-            getStatsResult.connectionType.remote.transport = result.mozRemoteTransport || result.transport;
-        }
-
-        if (isSafari) {
-            // result.remoteCandidateId
-            // todo: below line will always force "send" on Safari; find a solution
-            var sendrecvType = result.localCandidateId ? 'send' : 'recv';
-
-            if (!sendrecvType) return;
-
-            if (!!result.bytesSent) {
-                var kilobytes = 0;
-                if (!getStatsResult.internal.video[sendrecvType].prevBytesSent) {
-                    getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
-                }
-
-                var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBytesSent;
-                getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
-
-                kilobytes = bytes / 1024;
-
-                getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-                getStatsResult.video.bytesSent = kilobytes.toFixed(1);
-            }
-
-            if (!!result.bytesReceived) {
-                var kilobytes = 0;
-                if (!getStatsResult.internal.video[sendrecvType].prevBytesReceived) {
-                    getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
-                }
-
-                var bytes = result.bytesReceived - getStatsResult.internal.video[sendrecvType].prevBytesReceived;
-                getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
-
-                kilobytes = bytes / 1024;
-                // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-                getStatsResult.video.bytesReceived = kilobytes.toFixed(1);
-            }
-
-            if (!!result.availableOutgoingBitrate) {
-                var kilobytes = 0;
-                if (!getStatsResult.internal.video[sendrecvType].prevAvailableOutgoingBitrate) {
-                    getStatsResult.internal.video[sendrecvType].prevAvailableOutgoingBitrate = result.availableOutgoingBitrate;
-                }
-
-                var bytes = result.availableOutgoingBitrate - getStatsResult.internal.video[sendrecvType].prevAvailableOutgoingBitrate;
-                getStatsResult.internal.video[sendrecvType].prevAvailableOutgoingBitrate = result.availableOutgoingBitrate;
-
-                kilobytes = bytes / 1024;
-                // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-                getStatsResult.video.availableOutgoingBitrate = kilobytes.toFixed(1);
-            }
-
-            if (!!result.availableIncomingBitrate) {
-                var kilobytes = 0;
-                if (!getStatsResult.internal.video[sendrecvType].prevAvailableIncomingBitrate) {
-                    getStatsResult.internal.video[sendrecvType].prevAvailableIncomingBitrate = result.availableIncomingBitrate;
-                }
-
-                var bytes = result.availableIncomingBitrate - getStatsResult.internal.video[sendrecvType].prevAvailableIncomingBitrate;
-                getStatsResult.internal.video[sendrecvType].prevAvailableIncomingBitrate = result.availableIncomingBitrate;
-
-                kilobytes = bytes / 1024;
-                // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-                getStatsResult.video.availableIncomingBitrate = kilobytes.toFixed(1);
-            }
-        }
+    getStatsResult.internal.candidates[result.id] = {
+        candidateType: REMOTE_candidateType[result.id],
+        ipAddress: REMOTE_ipAddress[result.id],
+        portNumber: result.port,
+        networkType: REMOTE_networkType[result.id],
+        priority: result.priority,
+        transport: REMOTE_transport[result.id],
+        timestamp: result.timestamp,
+        id: result.id,
+        type: result.type
     };
 
-    var LOCAL_candidateType = {};
-    var LOCAL_transport = {};
-    var LOCAL_ipAddress = {};
-    var LOCAL_networkType = {};
+    getStatsResult.connectionType.remote.candidateType = REMOTE_candidateType[result.id];
+    getStatsResult.connectionType.remote.ipAddress = REMOTE_ipAddress[result.id];
+    getStatsResult.connectionType.remote.networkType = REMOTE_networkType[result.id];
+    getStatsResult.connectionType.remote.transport = REMOTE_transport[result.id];
+};
 
-    getStatsParser.localcandidate = function(result) {
-        if (result.type !== 'localcandidate' && result.type !== 'local-candidate') return;
-        if (!result.id) return;
+getStatsParser.dataSentReceived = function(result) {
+    if (result.type === 'remote-inbound-rtp' || (result.kind !== 'video' && result.kind !== 'audio')) return;
 
-        if (!LOCAL_candidateType[result.id]) {
-            LOCAL_candidateType[result.id] = [];
+    if (!!result.bytesSent) {
+        getStatsResult[result.kind].bytesSent = parseInt(result.bytesSent);
+    }
+
+    if (!!result.bytesReceived) {
+        getStatsResult[result.kind].bytesReceived = parseInt(result.bytesReceived);
+    }
+};
+
+// Note: This files only for Safari
+// @todo remove safari code for our usecase?
+getStatsParser.inboundrtp = function(result) {
+    if (!isSafari) return;
+    if (result.type !== 'inbound-rtp') return;
+
+    var kind = result.kind || 'audio';
+    var sendrecvType = result.isRemote ? 'recv' : 'send';
+
+    if (!sendrecvType) return;
+
+    if (!!result.bytesSent) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal[kind][sendrecvType].prevBytesSent) {
+            getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
         }
 
-        if (!LOCAL_transport[result.id]) {
-            LOCAL_transport[result.id] = [];
+        var bytes = result.bytesSent - getStatsResult.internal[kind][sendrecvType].prevBytesSent;
+        getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
+
+        kilobytes = bytes / 1024;
+
+        getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult[kind].bytesSent = kilobytes.toFixed(1);
+    }
+
+    if (!!result.bytesReceived) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal[kind][sendrecvType].prevBytesReceived) {
+            getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
         }
 
-        if (!LOCAL_ipAddress[result.id]) {
-            LOCAL_ipAddress[result.id] = [];
+        var bytes = result.bytesReceived - getStatsResult.internal[kind][sendrecvType].prevBytesReceived;
+        getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
+
+        kilobytes = bytes / 1024;
+        // getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult[kind].bytesReceived = kilobytes.toFixed(1);
+    }
+};
+
+// Note: This files only for Safari
+// @todo remove safari code for our usecase?
+getStatsParser.outboundrtp = function(result) {
+    if (!isSafari) return;
+    if (result.type !== 'outbound-rtp') return;
+
+    var kind = result.kind || 'audio';
+    var sendrecvType = result.isRemote ? 'recv' : 'send';
+
+    if (!sendrecvType) return;
+
+    if (!!result.bytesSent) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal[kind][sendrecvType].prevBytesSent) {
+            getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
         }
 
-        if (!LOCAL_networkType[result.id]) {
-            LOCAL_networkType[result.id] = [];
+        var bytes = result.bytesSent - getStatsResult.internal[kind][sendrecvType].prevBytesSent;
+        getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
+
+        kilobytes = bytes / 1024;
+
+        getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult[kind].bytesSent = kilobytes.toFixed(1);
+    }
+
+    if (!!result.bytesReceived) {
+        var kilobytes = 0;
+        if (!getStatsResult.internal[kind][sendrecvType].prevBytesReceived) {
+            getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
         }
 
-        if (result.candidateType && LOCAL_candidateType[result.id].indexOf(result.candidateType) === -1) {
-            LOCAL_candidateType[result.id].push(result.candidateType);
-        }
+        var bytes = result.bytesReceived - getStatsResult.internal[kind][sendrecvType].prevBytesReceived;
+        getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        if (result.transport && LOCAL_transport[result.id].indexOf(result.transport) === -1) {
-            LOCAL_transport[result.id].push(result.transport);
-        }
+        kilobytes = bytes / 1024;
+        // getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        getStatsResult[kind].bytesReceived = kilobytes.toFixed(1);
+    }
+};
 
-        if (result.ipAddress && LOCAL_ipAddress[result.id].indexOf(result.ipAddress + ':' + result.portNumber) === -1) {
-            LOCAL_ipAddress[result.id].push(result.ipAddress + ':' + result.portNumber);
-        }
+// Note: This files only for Safari
+// @todo remove safari code for our usecase?
+getStatsParser.track = function(result) {
+    if (!isSafari) return;
+    if (result.type !== 'track') return;
 
-        if (result.networkType && LOCAL_networkType[result.id].indexOf(result.networkType) === -1) {
-            LOCAL_networkType[result.id].push(result.networkType);
-        }
+    var sendrecvType = result.remoteSource === true ? 'send' : 'recv';
 
-        getStatsResult.internal.candidates[result.id] = {
-            candidateType: LOCAL_candidateType[result.id],
-            ipAddress: LOCAL_ipAddress[result.id],
-            portNumber: result.portNumber,
-            networkType: LOCAL_networkType[result.id],
-            priority: result.priority,
-            transport: LOCAL_transport[result.id],
-            timestamp: result.timestamp,
-            id: result.id,
-            type: result.type
-        };
+    if (result.frameWidth && result.frameHeight) {
+        getStatsResult.resolutions[sendrecvType].width = result.frameWidth;
+        getStatsResult.resolutions[sendrecvType].height = result.frameHeight;
+    }
 
-        getStatsResult.connectionType.local.candidateType = LOCAL_candidateType[result.id];
-        getStatsResult.connectionType.local.ipAddress = LOCAL_ipAddress[result.id];
-        getStatsResult.connectionType.local.networkType = LOCAL_networkType[result.id];
-        getStatsResult.connectionType.local.transport = LOCAL_transport[result.id];
-    };
+    // framesSent, framesReceived
+};
 
-    var REMOTE_candidateType = {};
-    var REMOTE_transport = {};
-    var REMOTE_ipAddress = {};
-    var REMOTE_networkType = {};
+var SSRC = {
+    audio: {
+        send: [],
+        recv: []
+    },
+    video: {
+        send: [],
+        recv: []
+    }
+};
 
-    getStatsParser.remotecandidate = function(result) {
-        if (result.type !== 'remotecandidate' && result.type !== 'remote-candidate') return;
-        if (!result.id) return;
+getStatsParser.ssrc = function(result) {
+    if (result.kind !== 'video' && result.kind !== 'audio') return;
+    if (result.type !== 'inbound-rtp' && result.type !== 'outbound-rtp') return;
 
-        if (!REMOTE_candidateType[result.id]) {
-            REMOTE_candidateType[result.id] = [];
-        }
+    // @todo double check this logic when having multiple candidates
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, result.kind);
+    if (!rtpResult) return;
 
-        if (!REMOTE_transport[result.id]) {
-            REMOTE_transport[result.id] = [];
-        }
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
 
-        if (!REMOTE_ipAddress[result.id]) {
-            REMOTE_ipAddress[result.id] = [];
-        }
+    const sendrecvType = result.type === 'outbound-rtp' ? 'send' : 'recv';
 
-        if (!REMOTE_networkType[result.id]) {
-            REMOTE_networkType[result.id] = [];
-        }
+    if (SSRC[result.kind][sendrecvType].indexOf(result.ssrc) === -1) {
+        SSRC[result.kind][sendrecvType].push(result.ssrc)
+    }
 
-        if (result.candidateType && REMOTE_candidateType[result.id].indexOf(result.candidateType) === -1) {
-            REMOTE_candidateType[result.id].push(result.candidateType);
-        }
+    getStatsResult[result.kind][sendrecvType].streams = SSRC[result.kind][sendrecvType].length;
+};
 
-        if (result.transport && REMOTE_transport[result.id].indexOf(result.transport) === -1) {
-            REMOTE_transport[result.id].push(result.transport);
-        }
-
-        if (result.ipAddress && REMOTE_ipAddress[result.id].indexOf(result.ipAddress + ':' + result.portNumber) === -1) {
-            REMOTE_ipAddress[result.id].push(result.ipAddress + ':' + result.portNumber);
-        }
-
-        if (result.networkType && REMOTE_networkType[result.id].indexOf(result.networkType) === -1) {
-            REMOTE_networkType[result.id].push(result.networkType);
-        }
-
-        getStatsResult.internal.candidates[result.id] = {
-            candidateType: REMOTE_candidateType[result.id],
-            ipAddress: REMOTE_ipAddress[result.id],
-            portNumber: result.portNumber,
-            networkType: REMOTE_networkType[result.id],
-            priority: result.priority,
-            transport: REMOTE_transport[result.id],
-            timestamp: result.timestamp,
-            id: result.id,
-            type: result.type
-        };
-
-        getStatsResult.connectionType.remote.candidateType = REMOTE_candidateType[result.id];
-        getStatsResult.connectionType.remote.ipAddress = REMOTE_ipAddress[result.id];
-        getStatsResult.connectionType.remote.networkType = REMOTE_networkType[result.id];
-        getStatsResult.connectionType.remote.transport = REMOTE_transport[result.id];
-    };
-
-    getStatsParser.dataSentReceived = function(result) {
-        if (!result.googCodecName || (result.mediaType !== 'video' && result.mediaType !== 'audio')) return;
-
-        if (!!result.bytesSent) {
-            getStatsResult[result.mediaType].bytesSent = parseInt(result.bytesSent);
-        }
-
-        if (!!result.bytesReceived) {
-            getStatsResult[result.mediaType].bytesReceived = parseInt(result.bytesReceived);
-        }
-    };
-
-    getStatsParser.inboundrtp = function(result) {
-        if (!isSafari) return;
-        if (result.type !== 'inbound-rtp') return;
-
-        var mediaType = result.mediaType || 'audio';
-        var sendrecvType = result.isRemote ? 'recv' : 'send';
-
-        if (!sendrecvType) return;
-
-        if (!!result.bytesSent) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal[mediaType][sendrecvType].prevBytesSent) {
-                getStatsResult.internal[mediaType][sendrecvType].prevBytesSent = result.bytesSent;
-            }
-
-            var bytes = result.bytesSent - getStatsResult.internal[mediaType][sendrecvType].prevBytesSent;
-            getStatsResult.internal[mediaType][sendrecvType].prevBytesSent = result.bytesSent;
-
-            kilobytes = bytes / 1024;
-
-            getStatsResult[mediaType][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult[mediaType].bytesSent = kilobytes.toFixed(1);
-        }
-
-        if (!!result.bytesReceived) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived) {
-                getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived = result.bytesReceived;
-            }
-
-            var bytes = result.bytesReceived - getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived;
-            getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived = result.bytesReceived;
-
-            kilobytes = bytes / 1024;
-            // getStatsResult[mediaType][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult[mediaType].bytesReceived = kilobytes.toFixed(1);
-        }
-    };
-
-    getStatsParser.outboundrtp = function(result) {
-        if (!isSafari) return;
-        if (result.type !== 'outbound-rtp') return;
-
-        var mediaType = result.mediaType || 'audio';
-        var sendrecvType = result.isRemote ? 'recv' : 'send';
-
-        if (!sendrecvType) return;
-
-        if (!!result.bytesSent) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal[mediaType][sendrecvType].prevBytesSent) {
-                getStatsResult.internal[mediaType][sendrecvType].prevBytesSent = result.bytesSent;
-            }
-
-            var bytes = result.bytesSent - getStatsResult.internal[mediaType][sendrecvType].prevBytesSent;
-            getStatsResult.internal[mediaType][sendrecvType].prevBytesSent = result.bytesSent;
-
-            kilobytes = bytes / 1024;
-
-            getStatsResult[mediaType][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult[mediaType].bytesSent = kilobytes.toFixed(1);
-        }
-
-        if (!!result.bytesReceived) {
-            var kilobytes = 0;
-            if (!getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived) {
-                getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived = result.bytesReceived;
-            }
-
-            var bytes = result.bytesReceived - getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived;
-            getStatsResult.internal[mediaType][sendrecvType].prevBytesReceived = result.bytesReceived;
-
-            kilobytes = bytes / 1024;
-            // getStatsResult[mediaType][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-            getStatsResult[mediaType].bytesReceived = kilobytes.toFixed(1);
-        }
-    };
-
-    getStatsParser.track = function(result) {
-        if (!isSafari) return;
-        if (result.type !== 'track') return;
-
-        var sendrecvType = result.remoteSource === true ? 'send' : 'recv';
-
-        if (result.frameWidth && result.frameHeight) {
-            getStatsResult.resolutions[sendrecvType].width = result.frameWidth;
-            getStatsResult.resolutions[sendrecvType].height = result.frameHeight;
-        }
-
-        // framesSent, framesReceived
-    };
-
-    var SSRC = {
-        audio: {
-            send: [],
-            recv: []
-        },
-        video: {
-            send: [],
-            recv: []
-        }
-    };
-
-    getStatsParser.ssrc = function(result) {
-        if (!result.googCodecName || (result.mediaType !== 'video' && result.mediaType !== 'audio')) return;
-        if (result.type !== 'ssrc') return;
-        var sendrecvType = result.id.split('_').pop();
-
-        if (SSRC[result.mediaType][sendrecvType].indexOf(result.ssrc) === -1) {
-            SSRC[result.mediaType][sendrecvType].push(result.ssrc)
-        }
-
-        getStatsResult[result.mediaType][sendrecvType].streams = SSRC[result.mediaType][sendrecvType].length;
-    };
-
-    getStatsLooper();
+getStatsLooper();
 
 };
 

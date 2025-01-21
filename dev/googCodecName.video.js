@@ -1,5 +1,5 @@
 getStatsParser.checkVideoTracks = function(result) {
-    if (result.mediaType !== 'video') return;
+    if (result.kind !== 'video') return;
 
     var sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;
@@ -93,6 +93,9 @@ getStatsParser.checkVideoTracks = function(result) {
 
     // calculate latency
     // @todo latency still not working as expected... do not expect 0 or below ...
+    // Possible interesting values
+    // 'remote-inbout-rpt' (kind, roundTripTime, roundTripTimeMeasurements?)
+    console.log('video', rtpResult, rtpResult.jitterBufferDelay);
     const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
     if (!!currentDelayMs) {
         var kilobytes = 0;
