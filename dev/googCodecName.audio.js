@@ -1,16 +1,14 @@
 getStatsParser.checkAudioTracks = function(result) {
-    if (result.kind !== 'audio') return;
+    if (result.kind !== 'audio' || !result.remoteId) return;
 
     const sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;
 
-    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
-    // @todo double check this logic when having multiple candidates
-    // @todo refator... rtpResultKey, can be result.type
-    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'audio');
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, 'audio');
     if (!rtpResult) return;
 
-    if (!rtpResult) return;
+    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId);
+    if(!remoteRtpResult) return;
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
     if (!codecResult) return;
@@ -24,7 +22,6 @@ getStatsParser.checkAudioTracks = function(result) {
     }
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.audio[sendrecvType].prevBytesSent) {
             getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -32,13 +29,12 @@ getStatsParser.checkAudioTracks = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal.audio[sendrecvType].prevBytesSent;
         getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
-        getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.audio[sendrecvType].bytesSent = kilobytes.toFixed(1);
         getStatsResult.audio.bytesSent = kilobytes.toFixed(1);
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.audio[sendrecvType].prevBytesReceived) {
             getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -46,37 +42,27 @@ getStatsParser.checkAudioTracks = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal.audio[sendrecvType].prevBytesReceived;
         getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-
-        // getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult.audio.bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.audio.bytesReceived = (bytes / 1024).toFixed(1);
     }
 
     if (result.trackIdentifier && getStatsResult.audio[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
         getStatsResult.audio[sendrecvType].tracks.push(result.trackIdentifier);
     }
 
-    // calculate latency
-    // @todo latency still not working as expected... do not expect 0 or below ...
-    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
-    if (!!currentDelayMs) {
-        var kilobytes = 0;
-        if (!getStatsResult.internal.audio.prevGoogCurrentDelayMs) {
-            getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
-        }
+    // Audio quality
+    getStatsResult.audio[sendrecvType].totalRoundTripTime = remoteRtpResult.totalRoundTripTime || 0;
+    getStatsResult.audio[sendrecvType].jitter = remoteRtpResult.jitter || 0;
+    getStatsResult.audio[sendrecvType].jitterBufferDelay = remoteRtpResult.jitterBufferDelay || 0;
+    getStatsResult.audio[sendrecvType].packetsLost = result.type === 'inbound-rtp' ? rtpResult.packetsLost : remoteRtpResult.packetsLost;
+    getStatsResult.audio[sendrecvType].packetsReceived = result.type === 'inbound-rtp' ? rtpResult.packetsReceived : 0;
 
-        var bytes = currentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
-        getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
-
-        getStatsResult.audio.latency = bytes.toFixed(1);
-
-        if (getStatsResult.audio.latency < 0) {
-            getStatsResult.audio.latency = 0;
-        }
+    if(remoteRtpResult.totalRoundTripTime) {
+        getStatsResult.audio.latency = remoteRtpResult.totalRoundTripTime;
     }
 
-    // calculate packetsLost
-    if (!!rtpResult.packetsLost) {
+    // calculate packetsLost difference between reports
+    if (Number.isInteger(rtpResult.packetsLost)) {
         var kilobytes = 0;
         if (!getStatsResult.internal.audio.prevPacketsLost) {
             getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
