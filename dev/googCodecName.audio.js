@@ -30,8 +30,8 @@ getStatsParser.checkAudioTracks = function(result) {
         getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
 
         var kilobytes = bytes / 1024;
-        getStatsResult.audio[sendrecvType].bytesSent = kilobytes.toFixed(1);
-        getStatsResult.audio.bytesSent = kilobytes.toFixed(1);
+        getStatsResult.audio[sendrecvType].bytesSent = kilobytes;
+        getStatsResult.audio.bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
@@ -43,7 +43,7 @@ getStatsParser.checkAudioTracks = function(result) {
         getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
 
         var kilobytes = bytes / 1024;
-        getStatsResult.audio.bytesReceived = (bytes / 1024).toFixed(1);
+        getStatsResult.audio.bytesReceived = (bytes / 1024);
     }
 
     if (result.trackIdentifier && getStatsResult.audio[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
@@ -63,15 +63,14 @@ getStatsParser.checkAudioTracks = function(result) {
 
     // calculate packetsLost difference between reports
     if (Number.isInteger(rtpResult.packetsLost)) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.audio.prevPacketsLost) {
             getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
         }
 
-        var bytes = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
+        var diff = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
         getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
 
-        getStatsResult.audio.packetsLost = bytes.toFixed(1);
+        getStatsResult.audio.packetsLost = diff;
 
         if (getStatsResult.audio.packetsLost < 0) {
             getStatsResult.audio.packetsLost = 0;

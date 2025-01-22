@@ -13,7 +13,6 @@ getStatsParser.ssrc = function(result) {
     if (result.kind !== 'video' && result.kind !== 'audio') return;
     if (result.type !== 'inbound-rtp' && result.type !== 'outbound-rtp') return;
 
-    // @todo double check this logic when having multiple candidates
     const rtpResult = getRtpResult(getStatsResult.results, result.type, result.kind);
     if (!rtpResult) return;
 

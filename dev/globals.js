@@ -12,40 +12,27 @@ var getStatsResult = {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
-        latency: 0,
         packetsLost: 0
     },
     video: {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
@@ -90,6 +77,9 @@ var getStatsResult = {
         }
     },
     internal: {
+        bandwidth: {
+            prevBytesReceived: 0,
+        },
         audio: {
             send: {},
             recv: {}
@@ -134,5 +124,7 @@ const getCodecResult = (results, codecId) => results.find(result => result.type 
 const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
 
 const getRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
+
+const getRemoteRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
 
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);

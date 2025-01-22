@@ -4,9 +4,6 @@ function getStatsLooper() {
     getStatsWrapper(function(results) {
         if (!results || !results.forEach) return;
 
-        console.log(`🤠 -> getStatsWrapper -> results:`, results.map(result => [result.type, result], ));
-        // console.log(`🤠 -> getStatsWrapper -> resultsAll:`, JSON.stringify(results, null, 2));
-
         // allow users to access native results
         getStatsResult.results = results;
 

@@ -10,7 +10,6 @@ getStatsParser.outboundrtp = function(result) {
     if (!sendrecvType) return;
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesSent) {
             getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -18,14 +17,13 @@ getStatsParser.outboundrtp = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal[kind][sendrecvType].prevBytesSent;
         getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
+        var kilobytes = bytes / 1024;
 
-        getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesSent = kilobytes.toFixed(1);
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesReceived) {
             getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -33,8 +31,8 @@ getStatsParser.outboundrtp = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal[kind][sendrecvType].prevBytesReceived;
         getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-        // getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesReceived = kilobytes;
     }
 };

@@ -1,6 +1,6 @@
 'use strict';
 
-// Last time updated: 2025-01-21 3:27:52 PM UTC
+// Last time updated: 2025-01-23 2:54:59 AM UTC
 
 // _______________
 // getStats v1.2.0
@@ -129,40 +129,27 @@ var getStatsResult = {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
-        latency: 0,
         packetsLost: 0
     },
     video: {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
@@ -207,6 +194,9 @@ var getStatsResult = {
         }
     },
     internal: {
+        bandwidth: {
+            prevBytesReceived: 0,
+        },
         audio: {
             send: {},
             recv: {}
@@ -252,6 +242,8 @@ const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
 
 const getRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
 
+const getRemoteRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
+
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 var peer = this;
@@ -273,9 +265,6 @@ var nomore = false;
 function getStatsLooper() {
     getStatsWrapper(function(results) {
         if (!results || !results.forEach) return;
-
-        console.log(`🤠 -> getStatsWrapper -> results:`, results.map(result => [result.type, result], ));
-        // console.log(`🤠 -> getStatsWrapper -> resultsAll:`, JSON.stringify(results, null, 2));
 
         // allow users to access native results
         getStatsResult.results = results;
@@ -358,18 +347,16 @@ getStatsParser.googCertificate = function(result) {
 };
 
 getStatsParser.checkAudioTracks = function(result) {
-    if (result.kind !== 'audio') return;
+    if (result.kind !== 'audio' || !result.remoteId) return;
 
     const sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;
 
-    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
-    // @todo double check this logic when having multiple candidates
-    // @todo refator... rtpResultKey, can be result.type
-    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'audio');
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, 'audio');
     if (!rtpResult) return;
 
-    if (!rtpResult) return;
+    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId);
+    if(!remoteRtpResult) return;
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
     if (!codecResult) return;
@@ -383,7 +370,6 @@ getStatsParser.checkAudioTracks = function(result) {
     }
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.audio[sendrecvType].prevBytesSent) {
             getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -391,13 +377,12 @@ getStatsParser.checkAudioTracks = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal.audio[sendrecvType].prevBytesSent;
         getStatsResult.internal.audio[sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
-        getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult.audio.bytesSent = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.audio[sendrecvType].bytesSent = kilobytes;
+        getStatsResult.audio.bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.audio[sendrecvType].prevBytesReceived) {
             getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -405,46 +390,35 @@ getStatsParser.checkAudioTracks = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal.audio[sendrecvType].prevBytesReceived;
         getStatsResult.internal.audio[sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-
-        // getStatsResult.audio[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult.audio.bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.audio.bytesReceived = (bytes / 1024);
     }
 
     if (result.trackIdentifier && getStatsResult.audio[sendrecvType].tracks.indexOf(result.trackIdentifier) === -1) {
         getStatsResult.audio[sendrecvType].tracks.push(result.trackIdentifier);
     }
 
-    // calculate latency
-    // @todo latency still not working as expected... do not expect 0 or below ...
-    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
-    if (!!currentDelayMs) {
-        var kilobytes = 0;
-        if (!getStatsResult.internal.audio.prevGoogCurrentDelayMs) {
-            getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
-        }
+    // Audio quality
+    getStatsResult.audio[sendrecvType].totalRoundTripTime = remoteRtpResult.totalRoundTripTime || 0;
+    getStatsResult.audio[sendrecvType].jitter = remoteRtpResult.jitter || 0;
+    getStatsResult.audio[sendrecvType].jitterBufferDelay = remoteRtpResult.jitterBufferDelay || 0;
+    getStatsResult.audio[sendrecvType].packetsLost = result.type === 'inbound-rtp' ? rtpResult.packetsLost : remoteRtpResult.packetsLost;
+    getStatsResult.audio[sendrecvType].packetsReceived = result.type === 'inbound-rtp' ? rtpResult.packetsReceived : 0;
 
-        var bytes = currentDelayMs - getStatsResult.internal.audio.prevGoogCurrentDelayMs;
-        getStatsResult.internal.audio.prevGoogCurrentDelayMs = currentDelayMs;
-
-        getStatsResult.audio.latency = bytes.toFixed(1);
-
-        if (getStatsResult.audio.latency < 0) {
-            getStatsResult.audio.latency = 0;
-        }
+    if(remoteRtpResult.totalRoundTripTime) {
+        getStatsResult.audio.latency = remoteRtpResult.totalRoundTripTime;
     }
 
-    // calculate packetsLost
-    if (!!rtpResult.packetsLost) {
-        var kilobytes = 0;
+    // calculate packetsLost difference between reports
+    if (Number.isInteger(rtpResult.packetsLost)) {
         if (!getStatsResult.internal.audio.prevPacketsLost) {
             getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
         }
 
-        var bytes = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
+        var diff = rtpResult.packetsLost - getStatsResult.internal.audio.prevPacketsLost;
         getStatsResult.internal.audio.prevPacketsLost = rtpResult.packetsLost;
 
-        getStatsResult.audio.packetsLost = bytes.toFixed(1);
+        getStatsResult.audio.packetsLost = diff;
 
         if (getStatsResult.audio.packetsLost < 0) {
             getStatsResult.audio.packetsLost = 0;
@@ -458,19 +432,13 @@ getStatsParser.checkVideoTracks = function(result) {
     var sendrecvType = getStatsResult.internal.getSendrecvType(result);
     if (!sendrecvType) return;
 
-    const rtpResultKey = sendrecvType === 'send' ? 'outbound-rtp' : 'inbound-rtp';
-    // @todo double check this logic when having multiple candidates
-    // @todo refator... rtpResultKey, can be result.type
-    const rtpResult = getRtpResult(getStatsResult.results, rtpResultKey, 'video');
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, 'video');
     if (!rtpResult) return;
 
-    if (!rtpResult) return;
+    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId) || {};
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
     if (!codecResult) return;
-
-    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
-    if (!mediaPlayoutResult) return;
 
     const currentCodec = getCodecName(codecResult.mimeType) || 'VP8';
     if (getStatsResult.video[sendrecvType].codecs.indexOf(currentCodec) === -1) {
@@ -478,7 +446,6 @@ getStatsParser.checkVideoTracks = function(result) {
     }
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.video[sendrecvType].prevBytesSent) {
             getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -486,14 +453,12 @@ getStatsParser.checkVideoTracks = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBytesSent;
         getStatsResult.internal.video[sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
-
-        getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult.video.bytesSent = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.video[sendrecvType].bytesSent = kilobytes;
+        getStatsResult.video.bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal.video[sendrecvType].prevBytesReceived) {
             getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -501,9 +466,9 @@ getStatsParser.checkVideoTracks = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal.video[sendrecvType].prevBytesReceived;
         getStatsResult.internal.video[sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-        // getStatsResult.video[sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult.video.bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult.video[sendrecvType].bytesReceived = kilobytes;
+        getStatsResult.video.bytesReceived = kilobytes;
     }
 
     if (rtpResult.frameHeight && result.frameWidth) {
@@ -515,89 +480,50 @@ getStatsParser.checkVideoTracks = function(result) {
         getStatsResult.video[sendrecvType].tracks.push(result.trackIdentifier);
     }
 
-    // @todo do not to existing in the migration guide and note inside the payload of result
-    if (result.framerateMean) {
-        getStatsResult.bandwidth.framerateMean = result.framerateMean;
-        var kilobytes = 0;
-        if (!getStatsResult.internal.video[sendrecvType].prevFramerateMean) {
-            getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.bitrateMean;
-        }
-
-        var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevFramerateMean;
-        getStatsResult.internal.video[sendrecvType].prevFramerateMean = result.framerateMean;
-
-        kilobytes = bytes / 1024;
-        getStatsResult.video[sendrecvType].framerateMean = bytes.toFixed(1);
+    // Frames Per Second (FPS) refers to the rate at which video frames are being sent or received
+    if (result.framesPerSecond) {
+        getStatsResult.video[sendrecvType].framesPerSecond = result.framesPerSecond;
     }
 
-    // @todo do not to existing in the migration guide and note inside the payload of result
-    if (result.bitrateMean) {
-        getStatsResult.bandwidth.bitrateMean = result.bitrateMean;
-        var kilobytes = 0;
-        if (!getStatsResult.internal.video[sendrecvType].prevBitrateMean) {
-            getStatsResult.internal.video[sendrecvType].prevBitrateMean = result.bitrateMean;
+    // Frames Sent refers to the total number of video frames that have been sent since the start of the session
+    if (Number.isInteger(result.framesSent)) {
+        if (!getStatsResult.internal.video[sendrecvType].prevFramesSent) {
+            getStatsResult.internal.video[sendrecvType].prevFramesSent = result.framesSent;
         }
 
-        var bytes = result.bytesSent - getStatsResult.internal.video[sendrecvType].prevBitrateMean;
-        getStatsResult.internal.video[sendrecvType].prevBitrateMean = result.bitrateMean;
+        var newFramesSent = result.framesSent - getStatsResult.internal.video[sendrecvType].prevFramesSent;
+        getStatsResult.internal.video[sendrecvType].prevFramesSent = result.framesSent;
 
-        kilobytes = bytes / 1024;
-        getStatsResult.video[sendrecvType].bitrateMean = bytes.toFixed(1);
+        getStatsResult.video[sendrecvType].framesSent = newFramesSent;
     }
 
-    // calculate latency
-    // @todo latency still not working as expected... do not expect 0 or below ...
-    // Possible interesting values
-    // 'remote-inbout-rpt' (kind, roundTripTime, roundTripTimeMeasurements?)
-    console.log('video', rtpResult, rtpResult.jitterBufferDelay);
-    const currentDelayMs = (rtpResult.jitterBufferDelay || 0) + mediaPlayoutResult.totalPlayoutDelay;
-    if (!!currentDelayMs) {
-        var kilobytes = 0;
-        if (!getStatsResult.internal.video.prevGoogCurrentDelayMs) {
-            getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
-        }
+    // Video quality
+    getStatsResult.video[sendrecvType].totalRoundTripTime = remoteRtpResult.totalRoundTripTime || 0;
+    getStatsResult.video[sendrecvType].jitter = remoteRtpResult.jitter || 0;
+    getStatsResult.video[sendrecvType].jitterBufferDelay = remoteRtpResult.jitterBufferDelay || 0;
+    getStatsResult.video[sendrecvType].packetsLost = result.type === 'inbound-rtp' ? rtpResult.packetsLost : remoteRtpResult.packetsLost;
+    getStatsResult.video[sendrecvType].packetsReceived = result.type === 'inbound-rtp' ? rtpResult.packetsReceived : 0;
 
-        var bytes = currentDelayMs - getStatsResult.internal.video.prevGoogCurrentDelayMs;
-        getStatsResult.internal.video.prevGoogCurrentDelayMs = currentDelayMs;
-
-        getStatsResult.video.latency = bytes.toFixed(1);
-
-        if (getStatsResult.video.latency < 0) {
-            getStatsResult.video.latency = 0;
-        }
+    if(remoteRtpResult.totalRoundTripTime) {
+        getStatsResult.video.latency = remoteRtpResult.totalRoundTripTime;
     }
 
-    // calculate packetsLost
-    if (!!result.packetsLost) {
-        var kilobytes = 0;
-        if (!getStatsResult.internal.video.prevPacketsLost) {
-            getStatsResult.internal.video.prevPacketsLost = result.packetsLost;
-        }
-
-        var bytes = result.packetsLost - getStatsResult.internal.video.prevPacketsLost;
-        getStatsResult.internal.video.prevPacketsLost = result.packetsLost;
-
-        getStatsResult.video.packetsLost = bytes.toFixed(1);
-
-        if (getStatsResult.video.packetsLost < 0) {
-            getStatsResult.video.packetsLost = 0;
-        }
+    if (Number.isInteger(rtpResult.packetsLost)) {
+        getStatsResult.video.packetsLost = rtpResult.packetsLost;
     }
 };
 
 getStatsParser.bweforvideo = function(result) {
     if (result.type === 'candidate-pair') {
         getStatsResult.bandwidth.availableSendBandwidth = result.availableOutgoingBitrate || 0;
-        getStatsResult.bandwidth.googAvailableSendBandwidth = result.availableOutgoingBitrate || 0;
-        getStatsResult.bandwidth.googAvailableReceiveBandwidth = result.availableIncomingBitrate || 0; // @todo not available anymore, check when using ICE
-        getStatsResult.bandwidth.googTransmitBitrate = result.bytesSent || 0;
     };
 
     if (result.type === 'outbound-rtp') {
-        getStatsResult.bandwidth.googBucketDelay = result.packetsSent > 0 ? result.totalPacketSendDelay / result.packetsSent : 0;
-        getStatsResult.bandwidth.googTargetEncBitrate = result.headerBytesSent + result.bytesSent;
-        getStatsResult.bandwidth.googActualEncBitrate = result.bytesSent - result.retransmittedBytesSent;
-        getStatsResult.bandwidth.googRetransmitBitrate = result.retransmittedBytesSent;
+        getStatsResult.bandwidth.transmitBitrate = (result.headerBytesSent + result.bytesSent) || 0;
+        getStatsResult.bandwidth.bucketDelay = result.packetsSent > 0 ? result.totalPacketSendDelay / result.packetsSent : 0;
+        getStatsResult.bandwidth.targetEncBitrate = result.targetBitrate;
+        getStatsResult.bandwidth.actualEncBitrate = result.bytesSent - result.retransmittedBytesSent;
+        getStatsResult.bandwidth.retransmitBitrate = result.retransmittedBytesSent;
     }
 };
 
@@ -815,7 +741,6 @@ getStatsParser.inboundrtp = function(result) {
     if (!sendrecvType) return;
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesSent) {
             getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -823,14 +748,13 @@ getStatsParser.inboundrtp = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal[kind][sendrecvType].prevBytesSent;
         getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
+        var kilobytes = bytes / 1024;
 
-        getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesSent = kilobytes.toFixed(1);
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesReceived) {
             getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -838,9 +762,9 @@ getStatsParser.inboundrtp = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal[kind][sendrecvType].prevBytesReceived;
         getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-        // getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesReceived = kilobytes;
     }
 };
 
@@ -856,7 +780,6 @@ getStatsParser.outboundrtp = function(result) {
     if (!sendrecvType) return;
 
     if (!!result.bytesSent) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesSent) {
             getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
         }
@@ -864,14 +787,13 @@ getStatsParser.outboundrtp = function(result) {
         var bytes = result.bytesSent - getStatsResult.internal[kind][sendrecvType].prevBytesSent;
         getStatsResult.internal[kind][sendrecvType].prevBytesSent = result.bytesSent;
 
-        kilobytes = bytes / 1024;
+        var kilobytes = bytes / 1024;
 
-        getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesSent = kilobytes.toFixed(1);
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesSent = kilobytes;
     }
 
     if (!!result.bytesReceived) {
-        var kilobytes = 0;
         if (!getStatsResult.internal[kind][sendrecvType].prevBytesReceived) {
             getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
         }
@@ -879,9 +801,9 @@ getStatsParser.outboundrtp = function(result) {
         var bytes = result.bytesReceived - getStatsResult.internal[kind][sendrecvType].prevBytesReceived;
         getStatsResult.internal[kind][sendrecvType].prevBytesReceived = result.bytesReceived;
 
-        kilobytes = bytes / 1024;
-        // getStatsResult[kind][sendrecvType].availableBandwidth = kilobytes.toFixed(1);
-        getStatsResult[kind].bytesReceived = kilobytes.toFixed(1);
+        var kilobytes = bytes / 1024;
+        getStatsResult[kind][sendrecvType].bytesSent = kilobytes;
+        getStatsResult[kind].bytesReceived = kilobytes;
     }
 };
 
@@ -916,7 +838,6 @@ getStatsParser.ssrc = function(result) {
     if (result.kind !== 'video' && result.kind !== 'audio') return;
     if (result.type !== 'inbound-rtp' && result.type !== 'outbound-rtp') return;
 
-    // @todo double check this logic when having multiple candidates
     const rtpResult = getRtpResult(getStatsResult.results, result.type, result.kind);
     if (!rtpResult) return;
 
