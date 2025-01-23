@@ -243,6 +243,16 @@
                     </td>
                 </tr>
 
+                <tr class="firefox-allowed chrome-allowed">
+                    <td>Network Type</td>
+                    <td>
+                        <span id="peer1-networkType"></span>
+                    </td>
+                    <td>
+                        <span id="peer2-networkType"></span>
+                    </td>
+                </tr>
+
                 <tr class="firefox-not-allowed chrome-allowed">
                     <td>Resolutions</td>
                     <td>
@@ -267,28 +277,8 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-allowed chrome-not-allowed">
-                    <td>framerateMean</td>
-                    <td>
-                        <label>Send:</label> <span id="peer1-framerateMean"></span>
-                    </td>
-                    <td>
-                        <label>Send:</label> <span id="peer2-framerateMean"></span>
-                    </td>
-                </tr>
-
-                <tr class="firefox-allowed chrome-not-allowed">
-                    <td>bitrateMean</td>
-                    <td>
-                        <label>Send:</label> <span id="peer1-bitrateMean"></span>
-                    </td>
-                    <td>
-                        <label>Send:</label> <span id="peer2-bitrateMean"></span>
-                    </td>
-                </tr>
-
                 <tr class="firefox-not-allowed chrome-allowed">
-                    <td>latency</td>
+                    <td>Latency<br /><small>(Total Round Trip)</small></td>
                     <td>
                         <label>Audio:</label> <span id="peer1-audio-latency"></span><br>
                         <label>Video:</label> <span id="peer1-video-latency"></span>
@@ -300,14 +290,32 @@
                 </tr>
 
                 <tr class="firefox-not-allowed chrome-allowed">
-                    <td>packetsLost</td>
+                    <td>Packets</td>
                     <td>
-                        <label>Audio:</label> <span id="peer1-audio-packetsLost"></span><br>
-                        <label>Video:</label> <span id="peer1-video-packetsLost"></span>
+                        <div>
+                            <span>Received</span><br>
+                            <label>Audio:</label> <span id="peer1-audio-packetsReceived"></span><br>
+                            <label>Video:</label> <span id="peer1-video-packetsReceived"></span>
+                        </div>
+
+                        <div>
+                            <span>Lost</span><br>
+                            <label>Audio:</label> <span id="peer1-audio-packetsLost"></span><br>
+                            <label>Video:</label> <span id="peer1-video-packetsLost"></span>
+                        </div>
                     </td>
                     <td>
-                        <label>Audio:</label> <span id="peer2-audio-packetsLost"></span><br>
-                        <label>Video:</label> <span id="peer2-video-packetsLost"></span>
+                        <div>
+                            <span>Received</span><br>
+                            <label>Audio:</label> <span id="peer2-audio-packetsReceived"></span><br>
+                            <label>Video:</label> <span id="peer2-video-packetsReceived"></span>
+                        </div>
+
+                        <div>
+                            <span>Lost</span><br>
+                            <label>Audio:</label> <span id="peer2-audio-packetsLost"></span><br>
+                            <label>Video:</label> <span id="peer2-video-packetsLost"></span>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -524,6 +532,7 @@
                         result.connectionType.local.candidateType = 'STUN';
                     }
                     document.getElementById('peer' + peer.idx + '-localIceType').innerHTML = result.connectionType.local.candidateType;
+                    document.getElementById('peer' + peer.idx + '-networkType').innerHTML = peer.idx === 1 ? result.connectionType.local.networkType : result.connectionType.remote.networkType;
                     document.getElementById('peer' + peer.idx + '-externalIPAddressLocal').innerHTML = result.connectionType.local.ipAddress.join(', ');
                     document.getElementById('peer' + peer.idx + '-localTransport').innerHTML = result.connectionType.local.transport.join(', ');
 
@@ -540,11 +549,11 @@
 
                     document.getElementById('peer' + peer.idx + '-bandwidthSpeed').innerHTML = bytesToSize(result.bandwidth.speed);
 
-                    document.getElementById('peer' + peer.idx + '-framerateMean').innerHTML = bytesToSize(result.video.send.framerateMean);
-                    document.getElementById('peer' + peer.idx + '-bitrateMean').innerHTML = bytesToSize(result.video.send.bitrateMean);
-
                     document.getElementById('peer' + peer.idx + '-audio-latency').innerHTML = result.audio.latency + 'ms';
                     document.getElementById('peer' + peer.idx + '-video-latency').innerHTML = result.video.latency + 'ms';
+
+                    document.getElementById('peer' + peer.idx + '-audio-packetsReceived').innerHTML = result.audio.recv.packetsReceived;
+                    document.getElementById('peer' + peer.idx + '-video-packetsReceived').innerHTML = result.video.recv.packetsReceived;
 
                     document.getElementById('peer' + peer.idx + '-audio-packetsLost').innerHTML = result.audio.packetsLost;
                     document.getElementById('peer' + peer.idx + '-video-packetsLost').innerHTML = result.video.packetsLost;
