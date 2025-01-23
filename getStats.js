@@ -1,6 +1,6 @@
 'use strict';
 
-// Last time updated: 2025-01-23 2:54:59 AM UTC
+// Last time updated: 2025-01-23 4:14:50 PM UTC
 
 // _______________
 // getStats v1.2.0
@@ -355,14 +355,10 @@ getStatsParser.checkAudioTracks = function(result) {
     const rtpResult = getRtpResult(getStatsResult.results, result.type, 'audio');
     if (!rtpResult) return;
 
-    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId);
-    if(!remoteRtpResult) return;
+    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId) || {};
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
     if (!codecResult) return;
-
-    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
-    if (!mediaPlayoutResult) return;
 
     const currentCodec = getCodecName(codecResult.mimeType) || 'opus';
     if (getStatsResult.audio[sendrecvType].codecs.indexOf(currentCodec) === -1) {
@@ -536,6 +532,8 @@ getStatsParser.candidatePair = function(result) {
     // The active connection refers to the candidate pair that is currently selected by the transport
     // Logic from deprecated `googActiveConnection`, whish should means either STUN or TURN is used.
     const isStunTurnUsed = transportResult && transportResult.selectedCandidatePairId === result.id;
+    var localCandidate;
+    var remoteCandidate;
 
     if (isStunTurnUsed) {
         Object.keys(getStatsResult.internal.candidates).forEach(function(cid) {
@@ -559,14 +557,14 @@ getStatsParser.candidatePair = function(result) {
         // Use local-candidate to define transport
         getStatsResult.connectionType.transport = localCandidateResult.protocol;
 
-        let localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
+        localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
         if (localCandidate) {
             if (localCandidate.ipAddress) {
                 getStatsResult.connectionType.systemIpAddress = localCandidate.ipAddress;
             }
         }
 
-        let remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+        remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
         if (remoteCandidate) {
             if (remoteCandidate.ipAddress) {
                 getStatsResult.connectionType.systemIpAddress = remoteCandidate.ipAddress;

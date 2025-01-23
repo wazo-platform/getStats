@@ -7,14 +7,10 @@ getStatsParser.checkAudioTracks = function(result) {
     const rtpResult = getRtpResult(getStatsResult.results, result.type, 'audio');
     if (!rtpResult) return;
 
-    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId);
-    if(!remoteRtpResult) return;
+    const remoteRtpResult = getStatsResult.results.find(r => r.id === result.remoteId) || {};
 
     const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
     if (!codecResult) return;
-
-    const mediaPlayoutResult = getStatsResult.results.find(r => r.type === 'media-playout');
-    if (!mediaPlayoutResult) return;
 
     const currentCodec = getCodecName(codecResult.mimeType) || 'opus';
     if (getStatsResult.audio[sendrecvType].codecs.indexOf(currentCodec) === -1) {

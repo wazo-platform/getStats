@@ -7,6 +7,8 @@ getStatsParser.candidatePair = function(result) {
     // The active connection refers to the candidate pair that is currently selected by the transport
     // Logic from deprecated `googActiveConnection`, whish should means either STUN or TURN is used.
     const isStunTurnUsed = transportResult && transportResult.selectedCandidatePairId === result.id;
+    var localCandidate;
+    var remoteCandidate;
 
     if (isStunTurnUsed) {
         Object.keys(getStatsResult.internal.candidates).forEach(function(cid) {
@@ -30,14 +32,14 @@ getStatsParser.candidatePair = function(result) {
         // Use local-candidate to define transport
         getStatsResult.connectionType.transport = localCandidateResult.protocol;
 
-        let localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
+        localCandidate = getStatsResult.internal.candidates[result.localCandidateId];
         if (localCandidate) {
             if (localCandidate.ipAddress) {
                 getStatsResult.connectionType.systemIpAddress = localCandidate.ipAddress;
             }
         }
 
-        let remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
+        remoteCandidate = getStatsResult.internal.candidates[result.remoteCandidateId];
         if (remoteCandidate) {
             if (remoteCandidate.ipAddress) {
                 getStatsResult.connectionType.systemIpAddress = remoteCandidate.ipAddress;
