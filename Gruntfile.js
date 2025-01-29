@@ -70,44 +70,6 @@ module.exports = function(grunt) {
                 }
             }
         },
-        jsbeautifier: {
-            files: ['getStats.js', 'dev/*.js', 'server.js', 'Gruntfile.js'],
-            options: {
-                js: {
-                    braceStyle: "collapse",
-                    breakChainedMethods: false,
-                    e4x: false,
-                    evalCode: false,
-                    indentChar: " ",
-                    indentLevel: 0,
-                    indentSize: 4,
-                    indentWithTabs: false,
-                    jslintHappy: false,
-                    keepArrayIndentation: false,
-                    keepFunctionIndentation: false,
-                    maxPreserveNewlines: 10,
-                    preserveNewlines: true,
-                    spaceBeforeConditional: true,
-                    spaceInParen: false,
-                    unescapeStrings: false,
-                    wrapLineLength: 0
-                },
-                html: {
-                    braceStyle: "collapse",
-                    indentChar: " ",
-                    indentScripts: "keep",
-                    indentSize: 4,
-                    maxPreserveNewlines: 10,
-                    preserveNewlines: true,
-                    unformatted: ["a", "sub", "sup", "b", "i", "u"],
-                    wrapLineLength: 0
-                },
-                css: {
-                    indentChar: " ",
-                    indentSize: 4
-                }
-            }
-        },
         bump: {
             options: {
                 files: ['package.json', 'bower.json'],
@@ -126,7 +88,7 @@ module.exports = function(grunt) {
         watch: {
             scripts: {
                 files: ['dev/*.js'],
-                tasks: ['concat', 'jsbeautifier', 'uglify'],
+                tasks: ['concat', 'uglify'],
                 options: {
                     spawn: false,
                 },
@@ -138,6 +100,6 @@ module.exports = function(grunt) {
 
     // set default tasks to run when grunt is called without parameters
     // http://gruntjs.com/api/grunt.task
-    grunt.registerTask('default', ['concat', 'jsbeautifier', 'uglify']);
+    grunt.registerTask('default', ['concat', 'uglify']);
     grunt.loadNpmTasks('grunt-contrib-watch');
 };
