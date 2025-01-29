@@ -4,7 +4,7 @@ if (typeof MediaStreamTrack === 'undefined') {
     MediaStreamTrack = {}; // todo?
 }
 
-var systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
+const systemNetworkType = ((navigator.connection || {}).type || 'unknown').toString().toLowerCase();
 
 var getStatsResult = {
     encryption: 'sha-256',
@@ -12,40 +12,27 @@ var getStatsResult = {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
-        latency: 0,
         packetsLost: 0
     },
     video: {
         send: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         recv: {
             tracks: [],
             codecs: [],
-            availableBandwidth: 0,
             streams: 0,
-            framerateMean: 0,
-            bitrateMean: 0
         },
         bytesSent: 0,
         bytesReceived: 0,
@@ -90,6 +77,9 @@ var getStatsResult = {
         }
     },
     internal: {
+        bandwidth: {
+            prevBytesReceived: 0,
+        },
         audio: {
             send: {},
             recv: {}
@@ -121,7 +111,7 @@ var getStatsResult = {
     }
 };
 
-var getStatsParser = {
+const getStatsParser = {
     checkIfOfferer: function(result) {
         if (result.type === 'googLibjingleSession') {
             getStatsResult.isOfferer = result.googInitiator;
@@ -129,4 +119,12 @@ var getStatsParser = {
     }
 };
 
-var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const getCodecResult = (results, codecId) => results.find(result => result.type === 'codec' && result.id === codecId);
+
+const getCodecName = (mimeType) => mimeType && mimeType.split('/')[1];
+
+const getRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
+
+const getRemoteRtpResult = (results, directionType, kind) => results.find(r => r.type === directionType  && r.kind === kind)
+
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);

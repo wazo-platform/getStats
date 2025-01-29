@@ -10,13 +10,20 @@ var SSRC = {
 };
 
 getStatsParser.ssrc = function(result) {
-    if (!result.googCodecName || (result.mediaType !== 'video' && result.mediaType !== 'audio')) return;
-    if (result.type !== 'ssrc') return;
-    var sendrecvType = result.id.split('_').pop();
+    if (result.kind !== 'video' && result.kind !== 'audio') return;
+    if (result.type !== 'inbound-rtp' && result.type !== 'outbound-rtp') return;
 
-    if (SSRC[result.mediaType][sendrecvType].indexOf(result.ssrc) === -1) {
-        SSRC[result.mediaType][sendrecvType].push(result.ssrc)
+    const rtpResult = getRtpResult(getStatsResult.results, result.type, result.kind);
+    if (!rtpResult) return;
+
+    const codecResult = getCodecResult(getStatsResult.results, rtpResult.codecId);
+    if (!codecResult) return;
+
+    const sendrecvType = result.type === 'outbound-rtp' ? 'send' : 'recv';
+
+    if (SSRC[result.kind][sendrecvType].indexOf(result.ssrc) === -1) {
+        SSRC[result.kind][sendrecvType].push(result.ssrc)
     }
 
-    getStatsResult[result.mediaType][sendrecvType].streams = SSRC[result.mediaType][sendrecvType].length;
+    getStatsResult[result.kind][sendrecvType].streams = SSRC[result.kind][sendrecvType].length;
 };

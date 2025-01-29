@@ -4,8 +4,10 @@ function getStatsLooper() {
     getStatsWrapper(function(results) {
         if (!results || !results.forEach) return;
 
+        // allow users to access native results
+        getStatsResult.results = results;
+
         results.forEach(function(result) {
-            // console.error('result', result);
             Object.keys(getStatsParser).forEach(function(key) {
                 if (typeof getStatsParser[key] === 'function') {
                     try {
@@ -31,9 +33,6 @@ function getStatsLooper() {
             }
             getStatsResult.ended = true;
         }
-
-        // allow users to access native results
-        getStatsResult.results = results;
 
         if (getStatsResult.audio && getStatsResult.video) {
             getStatsResult.bandwidth.speed = (getStatsResult.audio.bytesSent - getStatsResult.bandwidth.helper.audioBytesSent) + (getStatsResult.video.bytesSent - getStatsResult.bandwidth.helper.videoBytesSent);

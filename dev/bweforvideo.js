@@ -1,13 +1,13 @@
 getStatsParser.bweforvideo = function(result) {
-    if (result.type !== 'VideoBwe') return;
+    if (result.type === 'candidate-pair') {
+        getStatsResult.bandwidth.availableSendBandwidth = result.availableOutgoingBitrate || 0;
+    };
 
-    getStatsResult.bandwidth.availableSendBandwidth = result.googAvailableSendBandwidth;
-
-    getStatsResult.bandwidth.googActualEncBitrate = result.googActualEncBitrate;
-    getStatsResult.bandwidth.googAvailableSendBandwidth = result.googAvailableSendBandwidth;
-    getStatsResult.bandwidth.googAvailableReceiveBandwidth = result.googAvailableReceiveBandwidth;
-    getStatsResult.bandwidth.googRetransmitBitrate = result.googRetransmitBitrate;
-    getStatsResult.bandwidth.googTargetEncBitrate = result.googTargetEncBitrate;
-    getStatsResult.bandwidth.googBucketDelay = result.googBucketDelay;
-    getStatsResult.bandwidth.googTransmitBitrate = result.googTransmitBitrate;
+    if (result.type === 'outbound-rtp') {
+        getStatsResult.bandwidth.transmitBitrate = (result.headerBytesSent + result.bytesSent) || 0;
+        getStatsResult.bandwidth.bucketDelay = result.packetsSent > 0 ? result.totalPacketSendDelay / result.packetsSent : 0;
+        getStatsResult.bandwidth.targetEncBitrate = result.targetBitrate;
+        getStatsResult.bandwidth.actualEncBitrate = result.bytesSent - result.retransmittedBytesSent;
+        getStatsResult.bandwidth.retransmitBitrate = result.retransmittedBytesSent;
+    }
 };

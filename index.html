@@ -1,9 +1,8 @@
-<script>window.demoVersion = '2019.02.20';</script>
-
 <!--
 > Muaz Khan     - www.MuazKhan.com
+> Wazo Platfor  - wazo-platform.org
 > MIT License   - www.WebRTC-Experiment.com/licence
-> Documentation - github.com/muaz-khan/getStats
+> Documentation - github.com/wazo-platform/getStats
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -16,14 +15,14 @@
     <link rel="author" type="text/html" href="https://muazkhan.com">
     <meta name="author" content="Muaz Khan">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    
+
     <link rel="stylesheet" href="https://www.webrtc-experiment.com/style.css">
 
     <style>
             audio, video {
                 -moz-transition: all 1s ease;
                 -ms-transition: all 1s ease;
-                
+
                 -o-transition: all 1s ease;
                 -webkit-transition: all 1s ease;
                 transition: all 1s ease;
@@ -55,7 +54,7 @@
                 border-left: 1px solid rgb(189, 189, 189);
                 padding: .5em;
             }
-            
+
             .videos-container {
                 border: 2px solid black;
                 padding: .1em;
@@ -119,8 +118,32 @@
             }
     </style>
 
-    <script src="https://www.webrtc-experiment.com/getStats.js"></script>
-    <script src="https://www.webrtc-experiment.com/IceServersHandler.js"></script>
+    <script src="/getStats.js"></script>
+    <!-- <script src="https://www.webrtc-experiment.com/getStats.js"></script> -->
+    <!-- <script src="https://www.webrtc-experiment.com/IceServersHandler.js"></script> -->
+    <script>
+        var IceServersHandler = (function() {
+            function getIceServers(connection) {
+                // resiprocate: 3344+4433
+                // pions: 7575
+                var iceServers = [{
+                    'urls': [
+                        'stun:stun.l.google.com:19302',
+                        'stun:stun1.l.google.com:19302',
+                        'stun:stun2.l.google.com:19302',
+                        // 'stun:stun.l.google.com:19302?transport=udp',
+                    ]
+                }];
+
+                return iceServers;
+            }
+
+            return {
+                getIceServers: getIceServers
+            };
+        })();
+    </script>
+
 
     <!-- for Edge/FF/Chrome/Opera/etc. getUserMedia support -->
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
@@ -132,25 +155,9 @@
             <h1>
                 getStats.js Demo | WebRTC getStats API
             </h1>
-            <p>
-                <a href="https://www.webrtc-experiment.com/">HOME</a>
-                <span> &copy; </span>
-                <a href="http://www.MuazKhan.com/" target="_blank">Muaz Khan</a> .
-                <a href="http://twitter.com/WebRTCWeb" target="_blank" title="Twitter profile for WebRTC Experiments">@WebRTCWeb</a> .
-                <a href="https://github.com/muaz-khan?tab=repositories" target="_blank" title="Github Profile">Github</a> .
-                <a href="https://github.com/muaz-khan/getStats/issues?state=open" target="_blank">Latest issues</a> .
-                <a href="https://github.com/muaz-khan/getStats/commits/master" target="_blank">What's New?</a>
-            </p>
         </header>
 
-        <div class="github-stargazers"></div>
-
-        <section style="margin: 20px; text-align: center; color: red;">
-            <small id="demoVersion"></small>
-            <script>var date=new Date(window.demoVersion),month=date.toLocaleString("en-us",{month:"long"}),day=date.getUTCDate();day.toString().length<=9&&(day=day.toString().length == 1 ? "0"+day : day);var year=date.getUTCFullYear(); document.getElementById("demoVersion").innerHTML="Last Updated On: <time>"+month+" "+day+" "+year+"</time>";</script>
-        </section>
-
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin: 20px 0;">
             <button id="btn-stop" disabled>Stop Camera & getStats</button>
             <select id="select-iceTransportPolicy">
                 <option value="all">STUN+TURN</option>
@@ -206,7 +213,7 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-not-allowed chrome-allowed">
+                <tr class="firefox-allowed chrome-allowed">
                     <td>Codecs</td>
                     <td>
                         <label>Send:</label> <span id="peer1-codecsSend"></span><br>
@@ -218,7 +225,7 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-not-allowed chrome-allowed">
+                <tr class="firefox-allowed chrome-allowed">
                     <td>Encryption</td>
                     <td><span id="peer1-encryptedAs"></span></td>
                     <td><span id="peer2-encryptedAs"></span></td>
@@ -236,7 +243,17 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-not-allowed chrome-allowed">
+                <tr class="firefox-allowed chrome-allowed">
+                    <td>Network Type</td>
+                    <td>
+                        <span id="peer1-networkType"></span>
+                    </td>
+                    <td>
+                        <span id="peer2-networkType"></span>
+                    </td>
+                </tr>
+
+                <tr class="firefox-allowed chrome-allowed">
                     <td>Resolutions</td>
                     <td>
                         <label>Send:</label> <span id="peer1-videoResolutionsForSenders"></span><br>
@@ -260,28 +277,8 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-allowed chrome-not-allowed">
-                    <td>framerateMean</td>
-                    <td>
-                        <label>Send:</label> <span id="peer1-framerateMean"></span>
-                    </td>
-                    <td>
-                        <label>Send:</label> <span id="peer2-framerateMean"></span>
-                    </td>
-                </tr>
-
-                <tr class="firefox-allowed chrome-not-allowed">
-                    <td>bitrateMean</td>
-                    <td>
-                        <label>Send:</label> <span id="peer1-bitrateMean"></span>
-                    </td>
-                    <td>
-                        <label>Send:</label> <span id="peer2-bitrateMean"></span>
-                    </td>
-                </tr>
-
-                <tr class="firefox-not-allowed chrome-allowed">
-                    <td>latency</td>
+                <tr class="firefox-allowed chrome-allowed">
+                    <td>Latency<br /><small>(Total Round Trip)</small></td>
                     <td>
                         <label>Audio:</label> <span id="peer1-audio-latency"></span><br>
                         <label>Video:</label> <span id="peer1-video-latency"></span>
@@ -292,431 +289,415 @@
                     </td>
                 </tr>
 
-                <tr class="firefox-not-allowed chrome-allowed">
-                    <td>packetsLost</td>
+                <tr class="firefox-allowed chrome-allowed">
+                    <td>Packets</td>
                     <td>
-                        <label>Audio:</label> <span id="peer1-audio-packetsLost"></span><br>
-                        <label>Video:</label> <span id="peer1-video-packetsLost"></span>
+                        <div>
+                            <span>Received</span><br>
+                            <label>Audio:</label> <span id="peer1-audio-packetsReceived"></span><br>
+                            <label>Video:</label> <span id="peer1-video-packetsReceived"></span>
+                        </div>
+
+                        <div>
+                            <span>Lost</span><br>
+                            <label>Audio:</label> <span id="peer1-audio-packetsLost"></span><br>
+                            <label>Video:</label> <span id="peer1-video-packetsLost"></span>
+                        </div>
                     </td>
                     <td>
-                        <label>Audio:</label> <span id="peer2-audio-packetsLost"></span><br>
-                        <label>Video:</label> <span id="peer2-video-packetsLost"></span>
+                        <div>
+                            <span>Received</span><br>
+                            <label>Audio:</label> <span id="peer2-audio-packetsReceived"></span><br>
+                            <label>Video:</label> <span id="peer2-video-packetsReceived"></span>
+                        </div>
+
+                        <div>
+                            <span>Lost</span><br>
+                            <label>Audio:</label> <span id="peer2-audio-packetsLost"></span><br>
+                            <label>Video:</label> <span id="peer2-video-packetsLost"></span>
+                        </div>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <blockquote style="margin: 20px;">
-            Multi-user peer-to-peer demo: <a href="https://rtcmulticonnection.herokuapp.com/demos/getStats.html">getStats using RTCMultiConnection</a>
-        </blockquote>
+        <script>
+            var iceTransportPolicy = document.getElementById('select-iceTransportPolicy');
+            if(localStorage.getItem('iceTransportPolicy')) {
+                iceTransportPolicy.value = localStorage.getItem('iceTransportPolicy');
+            }
+            iceTransportPolicy.onchange = function() {
+                localStorage.setItem('iceTransportPolicy', this.value);
+                location.reload();
+            };
 
-            <script>
-                var iceTransportPolicy = document.getElementById('select-iceTransportPolicy');
-                if(localStorage.getItem('iceTransportPolicy')) {
-                    iceTransportPolicy.value = localStorage.getItem('iceTransportPolicy');
-                }
-                iceTransportPolicy.onchange = function() {
-                    localStorage.setItem('iceTransportPolicy', this.value);
-                    location.reload();
-                };
+            var iceTransportLimitation = document.getElementById('select-iceTransportLimitation');
+            if(localStorage.getItem('iceTransportLimitation')) {
+                iceTransportLimitation.value = localStorage.getItem('iceTransportLimitation');
+            }
+            iceTransportLimitation.onchange = function() {
+                localStorage.setItem('iceTransportLimitation', this.value);
+                location.reload();
+            };
 
-                var iceTransportLimitation = document.getElementById('select-iceTransportLimitation');
-                if(localStorage.getItem('iceTransportLimitation')) {
-                    iceTransportLimitation.value = localStorage.getItem('iceTransportLimitation');
-                }
-                iceTransportLimitation.onchange = function() {
-                    localStorage.setItem('iceTransportLimitation', this.value);
-                    location.reload();
-                };
+            var codec = document.getElementById('select-codec');
+            if(localStorage.getItem('codec')) {
+                codec.value = localStorage.getItem('codec');
+            }
+            codec.onchange = function() {
+                localStorage.setItem('codec', this.value);
+                location.reload();
+            };
 
-                var codec = document.getElementById('select-codec');
-                if(localStorage.getItem('codec')) {
-                    codec.value = localStorage.getItem('codec');
-                }
-                codec.onchange = function() {
-                    localStorage.setItem('codec', this.value);
-                    location.reload();
-                };
-
-                function addIceCandidate(peer, candidate) {
-                    if(iceTransportLimitation.value === 'tcp') {
-                        if(candidate.candidate.toLowerCase().indexOf('tcp') === -1) {
-                            return; // ignore UDP
-                        }
+            function addIceCandidate(peer, candidate) {
+                if(iceTransportLimitation.value === 'tcp') {
+                    if(candidate.candidate.toLowerCase().indexOf('tcp') === -1) {
+                        return; // ignore UDP
                     }
-
-                    if(iceTransportLimitation.value === 'udp') {
-                        if(candidate.candidate.toLowerCase().indexOf('udp') === -1) {
-                            return; // ignore UDP
-                        }
-                    }
-
-                    peer.addIceCandidate(candidate);
                 }
-            </script>
-            <script>
-                var offerer, answerer;
-                var offererToAnswerer = document.getElementById('peer1-to-peer2');
-                var answererToOfferer = document.getElementById('peer2-to-peer1');
 
-                var iceServers = {
-                    iceServers: IceServersHandler.getIceServers(),
-                    iceTransportPolicy: iceTransportPolicy.value,
-                    rtcpMuxPolicy: 'require',
-                    bundlePolicy: 'max-bundle'
-                };
+                if(iceTransportLimitation.value === 'udp') {
+                    if(candidate.candidate.toLowerCase().indexOf('udp') === -1) {
+                        return; // ignore UDP
+                    }
+                }
 
-                var mediaConstraints = {
-                    OfferToReceiveAudio: true,
-                    OfferToReceiveVideo: true
-                };
-            </script>
-            <script>
-                /* offerer */
+                peer.addIceCandidate(candidate);
+            }
+        </script>
+        <script>
+            var offerer, answerer;
+            var offererToAnswerer = document.getElementById('peer1-to-peer2');
+            var answererToOfferer = document.getElementById('peer2-to-peer1');
 
-                function offererPeer(video_stream) {
-                    offerer = new RTCPeerConnection(iceServers);
-                    offerer.idx = 1;
+            var iceServers = {
+                iceServers: IceServersHandler.getIceServers(),
+                iceTransportPolicy: iceTransportPolicy.value,
+                rtcpMuxPolicy: 'require',
+                bundlePolicy: 'max-bundle'
+            };
 
-                    video_stream.getTracks().forEach(function(track) {
-                        offerer.addTrack(track, video_stream);
-                    });
+            var mediaConstraints = {
+                OfferToReceiveAudio: true,
+                OfferToReceiveVideo: true
+            };
+        </script>
+        <script>
+            /* offerer */
 
-                    var firedOnce = false;
-                    offerer.ontrack = function (event) {
-                        if(firedOnce) return;
-                        firedOnce = true;
+            function offererPeer(video_stream) {
+                offerer = new RTCPeerConnection(iceServers);
+                offerer.idx = 1;
 
-                        offererToAnswerer.srcObject = event.streams[0];
+                video_stream.getTracks().forEach(function(track) {
+                    offerer.addTrack(track, video_stream);
+                });
 
-                        if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-                            getStats(offerer, event.streams[0].getTracks()[0], function(result) {
-                                previewGetStatsResult(offerer, result);
-                            }, 1000);
-                            return;
-                        }
+                var firedOnce = false;
+                offerer.ontrack = function (event) {
+                    if(firedOnce) return;
+                    firedOnce = true;
 
-                        getStats(offerer, function(result) {
+                    offererToAnswerer.srcObject = event.streams[0];
+
+                    if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+                        getStats(offerer, event.streams[0].getTracks()[0], function(result) {
                             previewGetStatsResult(offerer, result);
                         }, 1000);
-                    };
-
-                    offerer.onicecandidate = function (event) {
-                        if (!event || !event.candidate) return;
-                        addIceCandidate(answerer, event.candidate);
-                    };
-
-                    offerer.createOffer(mediaConstraints).then(function (offer) {
-                        offer.sdp = preferSelectedCodec(offer.sdp);
-                        offerer.setLocalDescription(offer).then(function() {
-                            answererPeer(offer, video_stream);
-                        });
-                    });
-                }
-            </script>
-            <script>
-                /* answerer */
-
-                function answererPeer(offer, video_stream) {
-                    answerer = new RTCPeerConnection(iceServers);
-                    answerer.idx = 2;
-                    
-                    video_stream.getTracks().forEach(function(track) {
-                        answerer.addTrack(track, video_stream);
-                    });
-
-                    var firedOnce = false;
-                    answerer.ontrack = function (event) {
-                        if(firedOnce) return;
-                        firedOnce = true;
-
-                        answererToOfferer.srcObject = event.streams[0];
-
-                        if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-                            getStats(offerer, event.streams[0].getTracks()[0], function(result) {
-                                previewGetStatsResult(offerer, result);
-                            }, 1000);
-                            return;
-                        }
-                        
-                        getStats(answerer, function(result) {
-                            previewGetStatsResult(answerer, result);
-                        }, 1000);
-                    };
-
-                    answerer.onicecandidate = function (event) {
-                        if (!event || !event.candidate) return;
-                        addIceCandidate(offerer, event.candidate);
-                    };
-
-                    answerer.setRemoteDescription(offer).then(function() {
-                        answerer.createAnswer(mediaConstraints).then(function (answer) {
-                            answer.sdp = preferSelectedCodec(answer.sdp);
-                            answerer.setLocalDescription(answer).then(function() {
-                                offerer.setRemoteDescription(answer);
-                            });                        
-                        });
-                    });
-                }
-            </script>
-            <script>
-                var video_constraints = {
-                    mandatory: {},
-                    optional: []
-                };
-
-                function getUserMedia(successCallback) {
-                    function errorCallback(e) {
-                        alert(JSON.stringify(e, null, '\t'));
+                        return;
                     }
 
-                    var mediaConstraints = { video: true, audio: true };
+                    getStats(offerer, function(result) {
+                        previewGetStatsResult(offerer, result);
+                    }, 1000);
+                };
 
-                    navigator.mediaDevices.getUserMedia(mediaConstraints).then(successCallback).catch(errorCallback);
-                }
-            </script>
-            <script>
-                var CAMERA_STREAM;
-                getUserMedia(function (video_stream) {
-                    CAMERA_STREAM = video_stream;
-                    offererPeer(video_stream);
+                offerer.onicecandidate = function (event) {
+                    if (!event || !event.candidate) return;
+                    addIceCandidate(answerer, event.candidate);
+                };
 
-                    document.getElementById('btn-stop').disabled = false;
+                offerer.createOffer(mediaConstraints).then(function (offer) {
+                    offer.sdp = preferSelectedCodec(offer.sdp);
+                    offerer.setLocalDescription(offer).then(function() {
+                        answererPeer(offer, video_stream);
+                    });
                 });
-            </script>
+            }
+        </script>
+        <script>
+            /* answerer */
 
-            <script>
-                var STOP_GETSTATS = false;
-                document.getElementById('btn-stop').onclick = function() {
-                    this.disabled = true;
-                    STOP_GETSTATS = true;
+            function answererPeer(offer, video_stream) {
+                answerer = new RTCPeerConnection(iceServers);
+                answerer.idx = 2;
 
-                    if(CAMERA_STREAM && CAMERA_STREAM.active === true) {
-                        CAMERA_STREAM.getTracks().forEach(function(track) {
-                            track.stop();
-                        });
+                video_stream.getTracks().forEach(function(track) {
+                    answerer.addTrack(track, video_stream);
+                });
+
+                var firedOnce = false;
+                answerer.ontrack = function (event) {
+                    if(firedOnce) return;
+                    firedOnce = true;
+
+                    answererToOfferer.srcObject = event.streams[0];
+
+                    if(/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+                        getStats(offerer, event.streams[0].getTracks()[0], function(result) {
+                            previewGetStatsResult(offerer, result);
+                        }, 1000);
+                        return;
                     }
+
+                    getStats(answerer, function(result) {
+                        previewGetStatsResult(answerer, result);
+                    }, 1000);
                 };
 
-                function previewGetStatsResult(peer, result) {
-                        if(STOP_GETSTATS) {
-                            result.nomore();
-                            return;
-                        }
+                answerer.onicecandidate = function (event) {
+                    if (!event || !event.candidate) return;
+                    addIceCandidate(offerer, event.candidate);
+                };
 
-                        if(result.connectionType.remote.candidateType.indexOf('relayed') !== -1) {
-                            result.connectionType.remote.candidateType = 'TURN';
-                        }
-                        else {
-                            result.connectionType.remote.candidateType = 'STUN';
-                        }
+                answerer.setRemoteDescription(offer).then(function() {
+                    answerer.createAnswer(mediaConstraints).then(function (answer) {
+                        answer.sdp = preferSelectedCodec(answer.sdp);
+                        answerer.setLocalDescription(answer).then(function() {
+                            offerer.setRemoteDescription(answer);
+                        });
+                    });
+                });
+            }
+        </script>
+        <script>
+            var video_constraints = {
+                mandatory: {},
+                optional: []
+            };
 
-                        document.getElementById('peer' + peer.idx + '-remoteIceType').innerHTML = result.connectionType.remote.candidateType;
-                        document.getElementById('peer' + peer.idx + '-externalIPAddressRemote').innerHTML = result.connectionType.remote.ipAddress.join(', ');
-                        document.getElementById('peer' + peer.idx + '-remoteTransport').innerHTML = result.connectionType.remote.transport.join(', ');
-
-                        if(result.connectionType.local.candidateType.indexOf('relayed') !== -1) {
-                            result.connectionType.local.candidateType = 'TURN';
-                        }
-                        else {
-                            result.connectionType.local.candidateType = 'STUN';
-                        }
-                        document.getElementById('peer' + peer.idx + '-localIceType').innerHTML = result.connectionType.local.candidateType;
-                        document.getElementById('peer' + peer.idx + '-externalIPAddressLocal').innerHTML = result.connectionType.local.ipAddress.join(', ');
-                        document.getElementById('peer' + peer.idx + '-localTransport').innerHTML = result.connectionType.local.transport.join(', ');
-
-                        document.getElementById('peer' + peer.idx + '-encryptedAs').innerHTML = result.encryption;
-
-                        document.getElementById('peer' + peer.idx + '-videoResolutionsForSenders').innerHTML = result.resolutions.send.width + 'x' + result.resolutions.send.height;
-                        document.getElementById('peer' + peer.idx + '-videoResolutionsForReceivers').innerHTML = result.resolutions.recv.width + 'x' + result.resolutions.recv.height;
-
-                        document.getElementById('peer' + peer.idx + '-totalDataForSenders').innerHTML = bytesToSize(result.audio.bytesSent + result.video.bytesSent);
-                        document.getElementById('peer' + peer.idx + '-totalDataForReceivers').innerHTML = bytesToSize(result.audio.bytesReceived + result.video.bytesReceived);
-
-                        document.getElementById('peer' + peer.idx + '-codecsSend').innerHTML = result.audio.send.codecs.concat(result.video.send.codecs).join(', ');
-                        document.getElementById('peer' + peer.idx + '-codecsRecv').innerHTML = result.audio.recv.codecs.concat(result.video.recv.codecs).join(', ');
-
-                        document.getElementById('peer' + peer.idx + '-bandwidthSpeed').innerHTML = bytesToSize(result.bandwidth.speed);
-
-                        document.getElementById('peer' + peer.idx + '-framerateMean').innerHTML = bytesToSize(result.video.send.framerateMean);
-                        document.getElementById('peer' + peer.idx + '-bitrateMean').innerHTML = bytesToSize(result.video.send.bitrateMean);
-
-                        document.getElementById('peer' + peer.idx + '-audio-latency').innerHTML = result.audio.latency + 'ms';
-                        document.getElementById('peer' + peer.idx + '-video-latency').innerHTML = result.video.latency + 'ms';
-
-                        document.getElementById('peer' + peer.idx + '-audio-packetsLost').innerHTML = result.audio.packetsLost;
-                        document.getElementById('peer' + peer.idx + '-video-packetsLost').innerHTML = result.video.packetsLost;
-
-                        if (result.ended === true) {
-                            result.nomore();
-                        }
-
-                        window.getStatsResult = result;
+            function getUserMedia(successCallback) {
+                function errorCallback(e) {
+                    alert('getUserMedia.errorCallback: '+JSON.stringify(e, null, '\t'));
                 }
 
-                if (typeof window.InstallTrigger !== 'undefined') {
-                    var all = document.querySelectorAll('.firefox-allowed');
-                    for(var i = 0; i < all.length; i++) {
-                        all[i].style.display = 'table-row';
-                    }
+                var mediaConstraints = { video: true, audio: true };
+                window.navigator.mediaDevices.getUserMedia(mediaConstraints).then(successCallback).catch(errorCallback);
+            }
+        </script>
+        <script>
+            var CAMERA_STREAM;
+            getUserMedia(function (video_stream) {
+                CAMERA_STREAM = video_stream;
+                offererPeer(video_stream);
 
-                    var all = document.querySelectorAll('.firefox-not-allowed');
-                    for(var i = 0; i < all.length; i++) {
-                        all[i].style.display = 'none';
-                    }
+                document.getElementById('btn-stop').disabled = false;
+            });
+        </script>
+
+        <script>
+            var STOP_GETSTATS = false;
+            document.getElementById('btn-stop').onclick = function() {
+                this.disabled = true;
+                STOP_GETSTATS = true;
+
+                if(CAMERA_STREAM && CAMERA_STREAM.active === true) {
+                    CAMERA_STREAM.getTracks().forEach(function(track) {
+                        track.stop();
+                    });
                 }
-                else {
-                    var all = document.querySelectorAll('.chrome-allowed');
-                    for(var i = 0; i < all.length; i++) {
-                        all[i].style.display = 'table-row';
+            };
+
+            function previewGetStatsResult(peer, result) {
+                    if(STOP_GETSTATS) {
+                        result.nomore();
+                        return;
                     }
 
-                    var all = document.querySelectorAll('.chrome-not-allowed');
-                    for(var i = 0; i < all.length; i++) {
-                        all[i].style.display = 'none';
+                    if(result.connectionType.remote.candidateType.indexOf('relayed') !== -1) {
+                        result.connectionType.remote.candidateType = 'TURN';
                     }
+                    else {
+                        result.connectionType.remote.candidateType = 'STUN';
+                    }
+
+                    document.getElementById('peer' + peer.idx + '-remoteIceType').innerHTML = result.connectionType.remote.candidateType;
+                    document.getElementById('peer' + peer.idx + '-externalIPAddressRemote').innerHTML = result.connectionType.remote.ipAddress.join(', ');
+                    document.getElementById('peer' + peer.idx + '-remoteTransport').innerHTML = result.connectionType.remote.transport.join(', ');
+
+                    if(result.connectionType.local.candidateType.indexOf('relayed') !== -1) {
+                        result.connectionType.local.candidateType = 'TURN';
+                    }
+                    else {
+                        result.connectionType.local.candidateType = 'STUN';
+                    }
+                    document.getElementById('peer' + peer.idx + '-localIceType').innerHTML = result.connectionType.local.candidateType;
+                    document.getElementById('peer' + peer.idx + '-networkType').innerHTML = peer.idx === 1 ? result.connectionType.local.networkType : result.connectionType.remote.networkType;
+                    document.getElementById('peer' + peer.idx + '-externalIPAddressLocal').innerHTML = result.connectionType.local.ipAddress.join(', ');
+                    document.getElementById('peer' + peer.idx + '-localTransport').innerHTML = result.connectionType.local.transport.join(', ');
+
+                    document.getElementById('peer' + peer.idx + '-encryptedAs').innerHTML = result.encryption;
+
+                    document.getElementById('peer' + peer.idx + '-videoResolutionsForSenders').innerHTML = result.resolutions.send.width + 'x' + result.resolutions.send.height;
+                    document.getElementById('peer' + peer.idx + '-videoResolutionsForReceivers').innerHTML = result.resolutions.recv.width + 'x' + result.resolutions.recv.height;
+
+                    document.getElementById('peer' + peer.idx + '-totalDataForSenders').innerHTML = bytesToSize(result.audio.bytesSent + result.video.bytesSent);
+                    document.getElementById('peer' + peer.idx + '-totalDataForReceivers').innerHTML = bytesToSize(result.audio.bytesReceived + result.video.bytesReceived);
+
+                    document.getElementById('peer' + peer.idx + '-codecsSend').innerHTML = result.audio.send.codecs.concat(result.video.send.codecs).join(', ');
+                    document.getElementById('peer' + peer.idx + '-codecsRecv').innerHTML = result.audio.recv.codecs.concat(result.video.recv.codecs).join(', ');
+
+                    document.getElementById('peer' + peer.idx + '-bandwidthSpeed').innerHTML = bytesToSize(result.bandwidth.speed);
+
+                    document.getElementById('peer' + peer.idx + '-audio-latency').innerHTML = result.audio.latency + 'ms';
+                    document.getElementById('peer' + peer.idx + '-video-latency').innerHTML = result.video.latency + 'ms';
+
+                    document.getElementById('peer' + peer.idx + '-audio-packetsReceived').innerHTML = result.audio.recv.packetsReceived;
+                    document.getElementById('peer' + peer.idx + '-video-packetsReceived').innerHTML = result.video.recv.packetsReceived;
+
+                    document.getElementById('peer' + peer.idx + '-audio-packetsLost').innerHTML = result.audio.packetsLost;
+                    document.getElementById('peer' + peer.idx + '-video-packetsLost').innerHTML = result.video.packetsLost;
+
+                    if (result.ended === true) {
+                        result.nomore();
+                    }
+
+                    window.getStatsResult = result;
+            }
+
+            if (typeof window.InstallTrigger !== 'undefined') {
+                var all = document.querySelectorAll('.firefox-allowed');
+                for(var i = 0; i < all.length; i++) {
+                    all[i].style.display = 'table-row';
                 }
 
-                function bytesToSize(bytes) {
-                    var k = 1000;
-                    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-                    if (bytes <= 0) {
-                        return '0 Bytes';
-                    }
-                    var i = parseInt(Math.floor(Math.log(bytes) / Math.log(k)), 10);
-                    
-                    if(!sizes[i]) {
-                        return '0 Bytes';
-                    }
-
-                    return (bytes / Math.pow(k, i)).toPrecision(3) + ' ' + sizes[i];
+                var all = document.querySelectorAll('.firefox-not-allowed');
+                for(var i = 0; i < all.length; i++) {
+                    all[i].style.display = 'none';
+                }
+            }
+            else {
+                var all = document.querySelectorAll('.chrome-allowed');
+                for(var i = 0; i < all.length; i++) {
+                    all[i].style.display = 'table-row';
                 }
 
-                function preferSelectedCodec(sdp) {
-                    var info = splitLines(sdp);
+                var all = document.querySelectorAll('.chrome-not-allowed');
+                for(var i = 0; i < all.length; i++) {
+                    all[i].style.display = 'none';
+                }
+            }
 
-                    if(codec.value === 'vp8' && info.vp8LineNumber === info.videoCodecNumbers[0]) {
-                        return sdp;
-                    }
+            function bytesToSize(bytes) {
+                var k = 1000;
+                var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                if (bytes <= 0) {
+                    return '0 Bytes';
+                }
+                var i = parseInt(Math.floor(Math.log(bytes) / Math.log(k)), 10);
 
-                    if(codec.value === 'vp9' && info.vp9LineNumber === info.videoCodecNumbers[0]) {
-                        return sdp;
-                    }
+                if(!sizes[i]) {
+                    return '0 Bytes';
+                }
 
-                    if(codec.value === 'h264' && info.h264LineNumber === info.videoCodecNumbers[0]) {
-                        return sdp;
-                    }
+                return (bytes / Math.pow(k, i)).toPrecision(3) + ' ' + sizes[i];
+            }
 
-                    sdp = preferCodec(sdp, codec.value, info);
+            function preferSelectedCodec(sdp) {
+                var info = splitLines(sdp);
 
+                if(codec.value === 'vp8' && info.vp8LineNumber === info.videoCodecNumbers[0]) {
                     return sdp;
                 }
 
-                function preferCodec(sdp, codec, info) {
-                    var preferCodecNumber = '';
-
-                    if(codec === 'vp8') {
-                        if(!info.vp8LineNumber) {
-                            return sdp;
-                        }
-                        preferCodecNumber = info.vp8LineNumber;
-                    }
-                    
-                    if(codec === 'vp9') {
-                        if(!info.vp9LineNumber) {
-                            return sdp;
-                        }
-                        preferCodecNumber = info.vp9LineNumber;
-                    }
-                    
-                    if(codec === 'h264') {
-                        if(!info.h264LineNumber) {
-                            return sdp;
-                        }
-
-                        preferCodecNumber = info.h264LineNumber;
-                    }
-
-                    var newLine = info.videoCodecNumbersOriginal.split('SAVPF')[0] + 'SAVPF ';
-
-                    var newOrder = [preferCodecNumber];
-                    info.videoCodecNumbers.forEach(function(codecNumber) {
-                        if(codecNumber === preferCodecNumber) return;
-                        newOrder.push(codecNumber);
-                    });
-
-                    newLine += newOrder.join(' ');
-
-                    sdp = sdp.replace(info.videoCodecNumbersOriginal, newLine);
+                if(codec.value === 'vp9' && info.vp9LineNumber === info.videoCodecNumbers[0]) {
                     return sdp;
                 }
 
-                function splitLines(sdp) {
-                    var info = {};
-                    sdp.split('\n').forEach(function(line) {
-                        if (line.indexOf('m=video') === 0) {
-                            info.videoCodecNumbers = [];
-                            line.split('SAVPF')[1].split(' ').forEach(function(codecNumber) {
-                                codecNumber = codecNumber.trim();
-                                if(!codecNumber || !codecNumber.length) return;
-                                info.videoCodecNumbers.push(codecNumber);
-                                info.videoCodecNumbersOriginal = line;
-                            });
-                        }
-
-                        if (line.indexOf('VP8/90000') !== -1 && !info.vp8LineNumber) {
-                            info.vp8LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
-                        }
-
-                        if (line.indexOf('VP9/90000') !== -1 && !info.vp9LineNumber) {
-                            info.vp9LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
-                        }
-
-                        if (line.indexOf('H264/90000') !== -1 && !info.h264LineNumber) {
-                            info.h264LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
-                        }
-                    });
-
-                    return info;
+                if(codec.value === 'h264' && info.h264LineNumber === info.videoCodecNumbers[0]) {
+                    return sdp;
                 }
-            </script>
 
-        <section>
-            <h2 class="header" id="updates" style="color: red; padding-bottom: .1em;"><a href="https://github.com/muaz-khan/getStats/issues" target="_blank">getStats Issues</a>
-            </h2>
-            <div id="github-issues"></div>
-        </section>
+                sdp = preferCodec(sdp, codec.value, info);
 
-        <section>
-            <h2 class="header" id="feedback">Feedback</h2>
-            <div>
-                <textarea id="message" style="border: 1px solid rgb(189, 189, 189); height: 8em; margin: .2em; outline: none; resize: vertical; width: 98%;" placeholder="Have any message? Suggestions or something went wrong?"></textarea>
-            </div>
-            <button id="send-message" style="font-size: 1em;">Send Message</button>
-            <small style="margin-left: 1em;">Enter your email too; if you want "direct" reply!</small>
-        </section>
+                return sdp;
+            }
 
-        <section>
-            <h2 class="header" id="updates" style="color: red; padding-bottom: .1em;"><a href="https://github.com/muaz-khan/getStats/commits/master" target="_blank">Latest Updates</a>
-            </h2>
-            <div id="github-commits"></div>
-        </section>
+            function preferCodec(sdp, codec, info) {
+                var preferCodecNumber = '';
+
+                if(codec === 'vp8') {
+                    if(!info.vp8LineNumber) {
+                        return sdp;
+                    }
+                    preferCodecNumber = info.vp8LineNumber;
+                }
+
+                if(codec === 'vp9') {
+                    if(!info.vp9LineNumber) {
+                        return sdp;
+                    }
+                    preferCodecNumber = info.vp9LineNumber;
+                }
+
+                if(codec === 'h264') {
+                    if(!info.h264LineNumber) {
+                        return sdp;
+                    }
+
+                    preferCodecNumber = info.h264LineNumber;
+                }
+
+                var newLine = info.videoCodecNumbersOriginal.split('SAVPF')[0] + 'SAVPF ';
+
+                var newOrder = [preferCodecNumber];
+                info.videoCodecNumbers.forEach(function(codecNumber) {
+                    if(codecNumber === preferCodecNumber) return;
+                    newOrder.push(codecNumber);
+                });
+
+                newLine += newOrder.join(' ');
+
+                sdp = sdp.replace(info.videoCodecNumbersOriginal, newLine);
+                return sdp;
+            }
+
+            function splitLines(sdp) {
+                var info = {};
+                sdp.split('\n').forEach(function(line) {
+                    if (line.indexOf('m=video') === 0) {
+                        info.videoCodecNumbers = [];
+                        line.split('SAVPF')[1].split(' ').forEach(function(codecNumber) {
+                            codecNumber = codecNumber.trim();
+                            if(!codecNumber || !codecNumber.length) return;
+                            info.videoCodecNumbers.push(codecNumber);
+                            info.videoCodecNumbersOriginal = line;
+                        });
+                    }
+
+                    if (line.indexOf('VP8/90000') !== -1 && !info.vp8LineNumber) {
+                        info.vp8LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
+                    }
+
+                    if (line.indexOf('VP9/90000') !== -1 && !info.vp9LineNumber) {
+                        info.vp9LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
+                    }
+
+                    if (line.indexOf('H264/90000') !== -1 && !info.h264LineNumber) {
+                        info.h264LineNumber = line.replace('a=rtpmap:', '').split(' ')[0];
+                    }
+                });
+
+                return info;
+            }
+        </script>
     </article>
-
-    <a href="https://github.com/muaz-khan/getStats" class="fork-left"></a>
 
     <footer>
         <p>
-            <a href="https://www.webrtc-experiment.com/">WebRTC Experiments</a> © <a href="https://plus.google.com/+MuazKhan" rel="author" target="_blank">Muaz Khan</a>
-            <a href="mailto:muazkh@gmail.com" target="_blank">muazkh@gmail.com</a>
+            Original code from <a href="https://www.webrtc-experiment.com/">WebRTC Experiments</a> adapted by <a href="https://wazo-platform.org/">Wazo Platform</a>
         </p>
     </footer>
-
-    <!-- commits.js is useless for you! -->
-    <script>
-        window.useThisGithubPath = 'muaz-khan/getStats';
-    </script>
-    <script src="https://www.webrtc-experiment.com/commits.js" async></script>
 </body>
 
 </html>
